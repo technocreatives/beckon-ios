@@ -140,7 +140,14 @@ public class SettingsStore<Metadata: DeviceMetadata> {
     */
     public func saveDevice(_ savedDevice: Metadata) {
         var current = getSavedDevices()
-        current.append(savedDevice)
+        if let index = current.firstIndex(where: { alreadySaved in
+            alreadySaved.uuid == savedDevice.uuid
+        }) {
+            current[index] = savedDevice
+        } else {
+            current.append(savedDevice)
+        }
+
         UserDefaults.standard.set(try? PropertyListEncoder().encode(current), forKey: savedDevicesKey)
         savedDevices = current
     }
