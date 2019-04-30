@@ -15,10 +15,69 @@ public protocol BluetoothServiceUUID {
     var uuid: CBUUID { get }
 }
 
+public enum CharacteristicTraits {
+    case read
+    case notify
+    case write
+}
+
 public protocol BluetoothCharacteristicUUID {
     var uuid: CBUUID { get }
     var service: BluetoothServiceUUID { get }
-    var notify: Bool { get }
+    var traits: [CharacteristicTraits] { get }
+}
+
+public protocol BeckonMappable {
+    func mapper(_ data: Data) throws -> Self
+}
+
+struct BeckonMapperError: Error {
+    let data: Data
+    let mapper: String
+}
+
+extension Int: BeckonMappable {
+    public func mapper(_ data: Data) throws -> Int {
+        return data.withUnsafeBytes { $0.pointee }
+    }
+}
+
+extension String: BeckonMappable {
+    public func mapper(_ data: Data) throws -> String {
+        guard let string = String(data: data, encoding: String.Encoding.utf8) else { throw BeckonMapperError(data: data, mapper: "String") }
+        return string
+    }
+}
+
+extension Bool: BeckonMappable {
+    public func mapper(_ data: Data) throws -> Bool {
+        return data.first == 1
+    }
+}
+
+public struct ConvertibleBluetoothCharacteristicUUID<ValueType, State>: BluetoothCharacteristicUUID where ValueType: BeckonMappable, State: BeckonState {
+    
+    public var uuid: CBUUID
+    public var service: BluetoothServiceUUID
+    public var traits: [CharacteristicTraits]
+    
+    public var keypath: WritableKeyPath<State, ValueType>
+    
+    public init(uuid: CBUUID, service: BluetoothServiceUUID, traits: [CharacteristicTraits], keyPath: WritableKeyPath<State, ValueType>) {
+        self.uuid = uuid
+        self.service = service
+        self.traits = traits
+        self.keypath = keyPath
+    }
+}
+
+public struct CustomBluetoothCharacteristicUUID<State>: BluetoothCharacteristicUUID where State: BeckonState {
+    public var uuid: CBUUID
+    public var service: BluetoothServiceUUID
+
+    public var traits: [CharacteristicTraits]
+    
+    var mapper: ((Data, State) -> State)
 }
 
 public struct AdvertisementData {

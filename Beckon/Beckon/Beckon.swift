@@ -70,6 +70,10 @@ public protocol DeviceMetadata: Codable {
     var uuid: UUID { get set }
 }
 
+public struct DiscoveredDevice: DeviceMetadata {
+    public var uuid: UUID
+}
+
 /**
  Manages local data regarding Beckon devices.
  
@@ -175,6 +179,26 @@ public class SettingsStore<Metadata: DeviceMetadata> {
     }
 }
 
+public typealias DeviceIdentifier = UUID
+
+public enum BeckonDeviceStatus<State> where State: BeckonState  {
+    case disconnected
+    case connected(state: State)
+}
+
+public class BeckonDevice<State, Metadata> where State: BeckonState, Metadata: DeviceMetadata {
+    public var deviceIdentifier: DeviceIdentifier {
+        return metadata.uuid
+    }
+    public let metadata: Metadata
+    public let state: BeckonDeviceStatus<State>
+    
+    public init(metadata: Metadata, state: BeckonDeviceStatus<State>) {
+        self.metadata = metadata
+        self.state = state
+    }
+}
+
 /**
  Main entry point for the Beckon framework.
  
@@ -183,7 +207,9 @@ public class SettingsStore<Metadata: DeviceMetadata> {
  Supply your `BeckonDescriptor`, `BeckonDevice`, `BeckonState` and `DeviceMetadata` implementations to get
  a fully typed, reactive bluetooth runloop.
  */
-public class Beckon<Device, State, Metadata>: NSObject where Device: BeckonDevice<State>, State: BeckonState, Metadata: DeviceMetadata {
+public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadata: DeviceMetadata {
+    private typealias Device = BeckonInternalDevice<State>
+    
     private static func makeInstance(key: String) -> CBCentralManager {
         return CBCentralManager(
             delegate: NoopBluetoothDelegate.shared,
@@ -211,7 +237,7 @@ public class Beckon<Device, State, Metadata>: NSObject where Device: BeckonDevic
     private var connectedDevices: [Device] = []
     private var pairedDevices: [Device] = []
     
-    public var delegate: BeckonDescriptor?
+    public var delegate: BeckonDescriptor
     
     fileprivate let restoredPeripheralsSubject = PublishSubject<CBPeripheral>()
     
@@ -219,6 +245,13 @@ public class Beckon<Device, State, Metadata>: NSObject where Device: BeckonDevic
     
     private let rescanSubject = ReplaySubject<Int>.create(bufferSize: 1)
     
+    /**
+     Start the runloop.
+    */
+    public func start() {
+        rescanSubject.onNext(1)
+    }
+
     /**
      Force a rescan.
      
@@ -229,14 +262,54 @@ public class Beckon<Device, State, Metadata>: NSObject where Device: BeckonDevic
     }
     
     /**
-     Observable of latest connected devices.
+     Observable of devices. Updated on every state change.
     */
-    public var devices: Observable<[Device]> {
+    public var devices: Observable<[BeckonDevice<State, Metadata>]> {
+        
+        return Observable.combineLatest(self.internalDevices.flatMapLatest { devices -> Observable<[(DeviceIdentifier, State)]> in
+            
+            if devices.count == 0 {
+                return Observable.just([])
+            }
+            
+            return Observable.combineLatest(devices.map { device in device.state.map { actualState in return (device.deviceIdentifier, actualState) } })
+            
+        }, self.settingsStore.saved)
+            .map { (arg: ([(DeviceIdentifier, State)], [Metadata])) -> [BeckonDevice<State, Metadata>] in
+                let (connected, saved) = arg
+                
+                var connectedHash = [DeviceIdentifier:State]()
+                for device in connected {
+                    connectedHash[device.0] = device.1
+                }
+                
+                return saved.map { metadata in
+                    let state: State? = connectedHash[metadata.uuid]
+                    return BeckonDevice<State, Metadata>(metadata: metadata, state: state != nil ? BeckonDeviceStatus<State>.connected(state: state!) : BeckonDeviceStatus<State>.disconnected)
+                }
+        }
+    }
+    
+    private var internalDevices: Observable<[Device]> {
         return devicesSubject.asObservable()
     }
     
+    private func device(for identifier:DeviceIdentifier) -> Device? {
+        if let device = connectedDevices.first(where: { device in device.deviceIdentifier == identifier }) {
+            return device
+        }
+        if let device = pairedDevices.first(where: { device in device.deviceIdentifier == identifier }) {
+            return device
+        }
+        return nil
+    }
+    
     public func state(forDevice deviceIdentifier:UUID) -> Observable<State>? {
-        return pairedDevices.first(where: { $0.deviceIdentifier == deviceIdentifier })?.state
+        return device(for: deviceIdentifier)?.state
+    }
+    
+    public func updateCharacteristic(_ characteristic: CBUUID, for device: DeviceIdentifier) {
+        self.device(for: device)?.updateCharacteristic(characteristic)
     }
     
     /**
@@ -244,8 +317,9 @@ public class Beckon<Device, State, Metadata>: NSObject where Device: BeckonDevic
      
      - parameter appID: A unique identifier for your app. Defaults to the bundle identifier.
     */
-    public init(appID: String = Bundle.main.bundleIdentifier!) {
+    public init(appID: String = Bundle.main.bundleIdentifier!, descriptor: BeckonDescriptor) {
         self.appID = appID
+        self.delegate = descriptor
         instance = Beckon.makeInstance(key: "\(appID).CentralManagerIdentifier")
         settingsStore = SettingsStore<Metadata>(appID: appID)
         super.init()
@@ -262,7 +336,9 @@ public class Beckon<Device, State, Metadata>: NSObject where Device: BeckonDevic
     /**
      Manually disconnect a device
     */
-    public func disconnect(device: Device) {
+    public func disconnect(device identifier: DeviceIdentifier) {
+        guard let device = self.device(for: identifier) else { return }
+        
         let appState = UIApplication.shared.applicationState
         if appState == .active {
             self.instance.cancelPeripheralConnection(device.peripheral)
@@ -289,7 +365,7 @@ public class Beckon<Device, State, Metadata>: NSObject where Device: BeckonDevic
         self.connectedDevices.removeAll()
         self.pairedDevices.forEach({ (device) in
             //                    _ = Axkid.shared.instance.rx.cancelPeripheralConnection(device.peripheral)
-            self.disconnect(device: device)
+            self.disconnect(device: device.deviceIdentifier)
         })
         self.pairedDevices.removeAll()
         self.devicesSubject.onNext([])
@@ -301,7 +377,7 @@ public class Beckon<Device, State, Metadata>: NSObject where Device: BeckonDevic
      
      Run only once.
     */
-    public func setup() {
+    private func setup() {
         // Listen for restored peripherals catched by the NoopBluetoothDelegate
         NotificationCenter.default.rx.notification(Notification.Name(BECKON_RESTORE_PERIPHERAL_NOTIFICATION))
             .subscribe(onNext: { [unowned self] notification in
@@ -322,7 +398,7 @@ public class Beckon<Device, State, Metadata>: NSObject where Device: BeckonDevic
                 })
                 self.connectedDevices.removeAll()
                 self.pairedDevices.forEach({ (device) in
-                    self.disconnect(device: device)
+                    self.disconnect(device: device.deviceIdentifier)
                 })
                 self.pairedDevices.removeAll()
                 self.devicesSubject.onNext([])
@@ -341,14 +417,14 @@ public class Beckon<Device, State, Metadata>: NSObject where Device: BeckonDevic
                 
                 var peripherals = Set<CBPeripheral>()
                 self.instance.retrievePeripherals(withIdentifiers: devices.map { $0.uuid }).forEach { peripherals.insert($0) }
-                if let delegate = self.delegate, let services = delegate.services() {
+                if let services = self.delegate.services {
                     self.instance.retrieveConnectedPeripherals(withServices: services.map { $0.uuid }).forEach { peripherals.insert($0) }
                     
                     return Observable.merge(Observable.from(peripherals.map { $0 }),
-                                            self.instance.rx.scanForPeripherals(withServices: services.map { $0.uuid }).filter { self.delegate?.isPairable(advertisementData: $0.data) ?? false }.map { dp in dp.peripheral }, self.restoredPeripheralsSubject)
+                                            self.instance.rx.scanForPeripherals(withServices: services.map { $0.uuid }).filter { self.delegate.isPairable(advertisementData: $0.data) }.map { dp in dp.peripheral }, self.restoredPeripheralsSubject)
                 }
                 return Observable.merge(Observable.from(peripherals.map { $0 }),
-                                        self.instance.rx.scanForPeripherals(withServices: nil).filter { self.delegate?.isPairable(advertisementData: $0.data) ?? false }.map { dp in dp.peripheral }, self.restoredPeripheralsSubject)
+                                        self.instance.rx.scanForPeripherals(withServices: nil).filter { self.delegate.isPairable(advertisementData: $0.data) }.map { dp in dp.peripheral }, self.restoredPeripheralsSubject)
                 
             })
             .observeOn(MainScheduler.instance)
@@ -378,7 +454,7 @@ public class Beckon<Device, State, Metadata>: NSObject where Device: BeckonDevic
                 })
             })
             .subscribe(onNext: { [weak self] peripheral in
-                if let device = Device(peripheral: peripheral), let self = self {
+                if let self = self, let device = Device(peripheral: peripheral, descriptor: self.delegate) {
                     self.pairedDevices.removeAll(where: { (pairedDevice) -> Bool in
                         pairedDevice.peripheral.identifier == device.peripheral.identifier
                     })
@@ -402,7 +478,7 @@ public class Beckon<Device, State, Metadata>: NSObject where Device: BeckonDevic
             .delay(1.0, scheduler: ConcurrentMainScheduler.instance)
             .map { [unowned self] device in
                 // NOTE: Side effects
-                self.disconnect(device: device)
+                self.disconnect(device: device.deviceIdentifier)
             }.subscribe().disposed(by: disposeBag)
         
         //        rescanSubject.onNext(1)
@@ -415,20 +491,20 @@ public class Beckon<Device, State, Metadata>: NSObject where Device: BeckonDevic
      Subscribe to this and save any devices you want to add to your runloop
      using `Beckon.settingsStore.saveDevice(_)`.
     */
-    public func search() -> Observable<Device> {
+    public func search() -> Observable<DiscoveredDevice> {
         return self.instance.rx
             .state
             .filter { state in return (CBManagerState.poweredOn == state) }
             .observeOn(MainScheduler.instance)
             .subscribeOn(MainScheduler.instance)
             .flatMapLatest { _ in
-                self.instance.rx.scanForPeripherals(withServices: self.delegate?.services()?.map { $0.uuid })
+                self.instance.rx.scanForPeripherals(withServices: self.delegate.services?.map { $0.uuid })
             }
             .observeOn(MainScheduler.instance)
             .subscribeOn(MainScheduler.instance)
             .do(onNext: { print("Found \($0), is it pairable?") })
             .filter {
-                self.delegate?.isPairable(advertisementData: $0.data) ?? false  } // Entry point for selecting only paired
+                self.delegate.isPairable(advertisementData: $0.data)  } // Entry point for selecting only paired
             .do(onNext: { print($0) }, onCompleted: { print("Completed scanning") })
             .filter { [unowned self] dp in
                 // This is probably kinda slow
@@ -438,8 +514,8 @@ public class Beckon<Device, State, Metadata>: NSObject where Device: BeckonDevic
                 return self.instance.rx.connect(discovered.peripheral) }
             .observeOn(MainScheduler.instance)
             .subscribeOn(MainScheduler.instance)
-            .map { peripheral in
-                return Device(peripheral: peripheral)
+            .map { [unowned self] peripheral in
+                return Device(peripheral: peripheral, descriptor: self.delegate)
             }
             .flatMapLatest({ device -> Observable<Device> in
                 return device.map {
@@ -447,6 +523,9 @@ public class Beckon<Device, State, Metadata>: NSObject where Device: BeckonDevic
                     return Observable.just($0)
                     } ?? Observable.empty()
             })
+            .map {
+                return DiscoveredDevice(uuid: $0.deviceIdentifier)
+            }
     }
     
     /**
@@ -454,15 +533,15 @@ public class Beckon<Device, State, Metadata>: NSObject where Device: BeckonDevic
     */
     public func stopSearch() {
         self.connectedDevices.forEach({ [unowned self] (device) in
-            self.disconnect(device: device)
+            self.disconnect(device: device.deviceIdentifier)
         })
         self.connectedDevices.removeAll()
         //        self.instance.stopScan()
     }
 }
 
-open class BeckonDevice<State>: NSObject, Disposable where State: BeckonState  {
-    static func == (lhs: BeckonDevice, rhs: BeckonDevice) -> Bool {
+private class BeckonInternalDevice<State>: NSObject, Disposable where State: BeckonState  {
+    static func == (lhs: BeckonInternalDevice, rhs: BeckonInternalDevice) -> Bool {
         return lhs.peripheral == rhs.peripheral
     }
     
@@ -472,20 +551,31 @@ open class BeckonDevice<State>: NSObject, Disposable where State: BeckonState  {
         return peripheral.identifier
     }
     
-    public var services: [CBUUID: (BluetoothServiceUUID, CBService)] = [:]
-    public var characteristics: [CBUUID: (BluetoothCharacteristicUUID, CBCharacteristic)] = [:]
+    private var services: [CBUUID: (BluetoothServiceUUID, CBService)] = [:]
+    private var characteristics: [CBUUID: (BluetoothCharacteristicUUID, CBCharacteristic)] = [:]
     
     private let disposeBag = DisposeBag()
-    private var latestState: State = State.defaultState
     
-    required public init?(peripheral: CBPeripheral) {
+    required public init?(peripheral: CBPeripheral, descriptor: BeckonDescriptor) {
         
         self.peripheral = peripheral
-        super.init()
         
-        self.state.subscribe(onNext: { [weak self] state in
-            self?.latestState = state
-        }).disposed(by: disposeBag)
+        let characteristicIDs = descriptor.characteristics
+        
+        for cbService in peripheral.services ?? [] {
+            
+            let serviceCharacteristics = cbService.characteristics ?? []
+            
+            for cbCharacteristic in serviceCharacteristics {
+                if let characteristicID = characteristicIDs.first(where: { characteristicUUID in characteristicUUID.uuid.uuidString == cbCharacteristic.uuid.uuidString }) {
+                    self.services[cbService.uuid] = (characteristicID.service, cbService)
+
+                    self.characteristics[characteristicID.uuid] = (characteristicID, cbCharacteristic)
+                }
+            }
+        }
+        
+        super.init()
     }
     
     private var deviceStateSubject: ReplaySubject<State>! = ReplaySubject.create(bufferSize: 1)
@@ -509,14 +599,19 @@ open class BeckonDevice<State>: NSObject, Disposable where State: BeckonState  {
     }()
     
     private func subscriptions() -> [Observable<BluetoothCharacteristicUUID>] {
-        return characteristics.map { (arg) -> Observable<BluetoothCharacteristicUUID> in
+        
+        return characteristics
+            .filter { char in char.value.0.traits.contains(where: { trait in trait == .notify || trait == .read }) }
+            .map { (arg) -> Observable<BluetoothCharacteristicUUID> in
             let (_, (id, _)) = arg
             let uuidString = id.uuid.uuidString
             
-            if id.notify {
+            if id.traits.contains(.notify) {
                 _ = peripheral.rx.setNotifyValue(true, for: id, with: PriorityInfo(tag: "notify.\(uuidString)", priority: Operation.QueuePriority.normal)).subscribe()
             }
-            _ = peripheral.rx.readValue(for: id, with: PriorityInfo(tag: "read.\(uuidString)", priority: Operation.QueuePriority.normal)).subscribe()
+            if id.traits.contains(.read) {
+                _ = peripheral.rx.readValue(for: id, with: PriorityInfo(tag: "read.\(uuidString)", priority: Operation.QueuePriority.normal)).subscribe()
+            }
             
             return self.peripheral.rx.watchValue(for: id, with: PriorityInfo(tag: "watch.\(uuidString)", priority: Operation.QueuePriority.normal))
                 .map { _ in
@@ -525,9 +620,67 @@ open class BeckonDevice<State>: NSObject, Disposable where State: BeckonState  {
         }
     }
     
+    func updateCharacteristic(_ uuid: CBUUID) {
+        guard let id = self.characteristics[uuid]?.0 else {
+            return
+        }
+        let uuidString = id.uuid.uuidString
+        _ = peripheral.rx.readValue(for: id, with: PriorityInfo(tag: "read.\(uuidString)", priority: Operation.QueuePriority.normal)).subscribe()
+    }
+    
+    func setter<Object: AnyObject, Value>(
+        for object: Object,
+        keyPath: WritableKeyPath<Object, Value>
+        ) -> (Value) -> Void {
+        return { [weak object] value in
+            object?[keyPath: keyPath] = value
+        }
+    }
+    
     open func reducer(characteristicID: BluetoothCharacteristicUUID, oldState: State) -> State {
+        guard let data = self.characteristics[characteristicID.uuid]?.1.value else {
+            return oldState
+        }
+        
+        // Custom mappers
+        if let custom = characteristicID as? CustomBluetoothCharacteristicUUID<State> {
+            return custom.mapper(data, oldState)
+        }
+        
+        // The automaticly convertable characteristics all need to be tested here,
+        // because Swift's generics aren't covariant... Adding a BeckonMappable means
+        // implementing BeckonMappable AND adding it here
+        if let convertible = characteristicID as? ConvertibleBluetoothCharacteristicUUID<Int, State> {
+            return self.reducer(data: data, convertible: convertible, oldState: oldState)
+        }
+        
+        if let convertible = characteristicID as? ConvertibleBluetoothCharacteristicUUID<String, State> {
+            return self.reducer(data: data, convertible: convertible, oldState: oldState)
+        }
+        
+        if let convertible = characteristicID as? ConvertibleBluetoothCharacteristicUUID<Bool, State> {
+            return self.reducer(data: data, convertible: convertible, oldState: oldState)
+        }
+
         return oldState
     }
+    
+    func reducer<T>(data: Data, convertible: ConvertibleBluetoothCharacteristicUUID<T, State>, oldState: State) -> State where T: BeckonMappable {
+        
+        let mappableValue = oldState[keyPath: convertible.keypath]
+        
+        var newState = oldState
+        do {
+            try newState[keyPath: convertible.keypath] = mappableValue.mapper(data)
+        } catch {
+            if let error = error as? BeckonMapperError {
+                print("Could not parse as \(error.mapper): \(error.data)")
+            }
+        }
+        
+        return newState
+    }
+
     
     deinit {
         dispose()
@@ -546,11 +699,11 @@ open class BeckonDevice<State>: NSObject, Disposable where State: BeckonState  {
 }
 
 public protocol BeckonDescriptor: class {
-    func services() -> [BluetoothServiceUUID]?
-    func characteristics() -> [BluetoothCharacteristicUUID]
+    var services: [BluetoothServiceUUID]? { get }
+    var characteristics: [BluetoothCharacteristicUUID] { get }
     func isPairable(advertisementData: AdvertisementData) -> Bool
 }
 
-public protocol BeckonState {
+public protocol BeckonState: Equatable {
     static var defaultState: Self { get }
 }
