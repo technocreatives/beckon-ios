@@ -7,6 +7,8 @@
 //
 
 import UIKit
+import Beckon
+import CoreBluetooth
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
