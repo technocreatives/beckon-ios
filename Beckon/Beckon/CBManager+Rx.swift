@@ -28,7 +28,13 @@ public protocol BluetoothCharacteristicUUID {
 }
 
 public protocol BeckonMappable {
+    func mapper(_ value: Self) throws -> Data
     func mapper(_ data: Data) throws -> Self
+}
+
+struct BeckonSerializeError: Error {
+    let value: Any
+    let mapper: String
 }
 
 struct BeckonMapperError: Error {
@@ -36,13 +42,29 @@ struct BeckonMapperError: Error {
     let mapper: String
 }
 
+extension Data: BeckonMappable {
+    public func mapper(_ data: Data) throws -> Data {
+        return data
+    }
+}
+
 extension Int: BeckonMappable {
+    public func mapper(_ value: Int) throws -> Data {
+        var value = value
+        return Data(bytes: &value, count: MemoryLayout.size(ofValue: value))
+    }
+    
     public func mapper(_ data: Data) throws -> Int {
         return data.withUnsafeBytes { $0.pointee }
     }
 }
 
 extension String: BeckonMappable {
+    public func mapper(_ value: String) throws -> Data {
+        guard let data = value.data(using: .utf8) else { throw BeckonSerializeError(value: value, mapper: "String") }
+        return data
+    }
+    
     public func mapper(_ data: Data) throws -> String {
         guard let string = String(data: data, encoding: String.Encoding.utf8) else { throw BeckonMapperError(data: data, mapper: "String") }
         return string
@@ -50,8 +72,24 @@ extension String: BeckonMappable {
 }
 
 extension Bool: BeckonMappable {
+    public func mapper(_ value: Bool) throws -> Data {
+        var mut = value
+        return Data(bytes: &mut, count: MemoryLayout.size(ofValue: value))
+    }
+    
     public func mapper(_ data: Data) throws -> Bool {
         return data.first == 1
+    }
+}
+
+public struct WriteOnlyBluetoothCharacteristicUUID<ValueType>: BluetoothCharacteristicUUID where ValueType: BeckonMappable {
+    public var uuid: CBUUID
+    public var service: BluetoothServiceUUID
+    public var traits: [CharacteristicTraits] = [.write]
+    
+    public init(uuid: CBUUID, service: BluetoothServiceUUID) {
+        self.uuid = uuid
+        self.service = service
     }
 }
 

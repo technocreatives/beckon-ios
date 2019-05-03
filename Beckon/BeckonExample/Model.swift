@@ -25,6 +25,7 @@ enum ExampleCharacteristicIdentifiers: String {
 
     case value = "FFF2"
     case active = "FFF3"
+    case lightOn = "FFF4"
 }
 
 struct ExampleState: BeckonState {
@@ -43,17 +44,21 @@ struct ExampleMetadata: DeviceMetadata {
 }
 
 class ExampleDescriptor: BeckonDescriptor {
-    var services: [BluetoothServiceUUID]? = nil//[ExampleServices.main]
+    var services: [BluetoothServiceUUID]? = [ExampleServices.main]
+    
+    static let lightOnCharacteristic = WriteOnlyBluetoothCharacteristicUUID<Bool>(uuid: ExampleCharacteristicIdentifiers.lightOn.uuid, service: ExampleServices.main)
+
     
     var characteristics: [BluetoothCharacteristicUUID] = [
         ConvertibleBluetoothCharacteristicUUID<Int, ExampleState>(uuid: ExampleCharacteristicIdentifiers.value.uuid,
                                                                        service: ExampleServices.main,
-                                                                       traits: [.read],
+                                                                       traits: [.notify,.read],
                                                                        keyPath: \ExampleState.value),
         ConvertibleBluetoothCharacteristicUUID<Bool, ExampleState>(uuid: ExampleCharacteristicIdentifiers.active.uuid,
                                                                           service: ExampleServices.main,
                                                                           traits: [.notify,.read],
-                                                                          keyPath: \ExampleState.active)
+                                                                          keyPath: \ExampleState.active),
+        lightOnCharacteristic
     ]
 
     

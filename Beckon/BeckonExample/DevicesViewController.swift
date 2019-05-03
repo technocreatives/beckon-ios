@@ -38,9 +38,11 @@ class DevicesViewController: UIViewController, UITableViewDelegate, UITableViewD
 
         let metadata = ExampleMetadata(uuid: device.deviceIdentifier, firstConnected: Date())
         
-        BeckonInstance.beckon.updateCharacteristic(ExampleCharacteristicIdentifiers.value.uuid, for: metadata.uuid)
+        if case .connected(let state) = device.state {
+            let _ = BeckonInstance.beckon.write(value: !state.active, to: ExampleDescriptor.lightOnCharacteristic, on: metadata.uuid).subscribe()
+        }
         
-        self.dismiss(animated: true, completion: nil)
+        tableView.deselectRow(at: indexPath, animated: true)
     }
     
     
@@ -51,10 +53,9 @@ class DevicesViewController: UIViewController, UITableViewDelegate, UITableViewD
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
+
         tableView.delegate = self
         tableView.dataSource = self        
-        BeckonInstance.beckon.start()
         
         BeckonInstance.beckon.devices
             .subscribe(onNext: { [weak self] (devices) in

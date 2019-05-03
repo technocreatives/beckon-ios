@@ -538,6 +538,22 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
         self.connectedDevices.removeAll()
         //        self.instance.stopScan()
     }
+    
+    public func write<T>(value: T, to characteristicID: WriteOnlyBluetoothCharacteristicUUID<T>, on device: DeviceIdentifier) -> Single<BeckonWriteResponse> where T: BeckonMappable {
+        return self.device(for: device)?.write(value: value, to: characteristicID) ?? Single.error(BeckonNoSuchDeviceError())
+    }
+
+    public func write<T>(value: T, to characteristicID: ConvertibleBluetoothCharacteristicUUID<T, State>, on device: DeviceIdentifier) -> Single<BeckonWriteResponse> where T: BeckonMappable {
+        return self.device(for: device)?.write(value: value, to: characteristicID) ?? Single.error(BeckonNoSuchDeviceError())
+    }
+
+    public func write<T>(value: T, to characteristicID: CustomBluetoothCharacteristicUUID<State>, on device: DeviceIdentifier) -> Single<BeckonWriteResponse> where T: BeckonMappable {
+        return self.device(for: device)?.write(value: value, to: characteristicID) ?? Single.error(BeckonNoSuchDeviceError())
+    }
+
+    public func write<T>(value: T, to uuid: CBUUID, on device: DeviceIdentifier) -> Single<BeckonWriteResponse> where T: BeckonMappable {
+        return self.device(for: device)?.write(value: value, to: uuid) ?? Single.error(BeckonNoSuchDeviceError())
+    }
 }
 
 private class BeckonInternalDevice<State>: NSObject, Disposable where State: BeckonState  {
@@ -680,6 +696,77 @@ private class BeckonInternalDevice<State>: NSObject, Disposable where State: Bec
         
         return newState
     }
+    
+    func write<T>(value: T, to characteristicID: WriteOnlyBluetoothCharacteristicUUID<T>) -> Single<BeckonWriteResponse> where T: BeckonMappable {
+        if let _ = self.characteristics[characteristicID.uuid]?.1 {
+            do {
+                let data = try value.mapper(value)
+                return self.peripheral.rx.writeValue(data: data, for: characteristicID, with: PriorityInfo(tag: "write", priority: Operation.QueuePriority.normal))
+                    .map { _ in return BeckonWriteResponse() }
+
+            } catch {
+                if let error = error as? BeckonSerializeError {
+                    print("Could not serialize \(error.value) as \(error.mapper): ")
+                }
+                return Single.error(error)
+            }
+        }
+        return Single.error(BeckonInvalidCharacteristicError())
+    }
+    
+    func write<T>(value: T, to characteristicID: ConvertibleBluetoothCharacteristicUUID<T, State>) -> Single<BeckonWriteResponse> where T: BeckonMappable {
+        if let _ = self.characteristics[characteristicID.uuid]?.1 {
+            do {
+                let data = try value.mapper(value)
+                print("Writing \(data.base64EncodedString()) to \(characteristicID.uuid)")
+                return self.peripheral.rx.writeValue(data: data, for: characteristicID, with: PriorityInfo(tag: "write", priority: Operation.QueuePriority.normal))
+                    .map { _ in return BeckonWriteResponse() }
+
+            } catch {
+                if let error = error as? BeckonSerializeError {
+                    print("Could not serialize \(error.value) as \(error.mapper): ")
+                }
+                return Single.error(error)
+            }
+        }
+        return Single.error(BeckonInvalidCharacteristicError())
+    }
+
+    
+    func write<T>(value: T, to characteristicID: CustomBluetoothCharacteristicUUID<State>) -> Single<BeckonWriteResponse> where T: BeckonMappable {
+        if let _ = self.characteristics[characteristicID.uuid]?.1 {
+            do {
+                let data = try value.mapper(value)
+                return self.peripheral.rx.writeValue(data: data, for: characteristicID, with: PriorityInfo(tag: "write", priority: Operation.QueuePriority.normal))
+                    .map { _ in return BeckonWriteResponse() }
+
+            } catch {
+                if let error = error as? BeckonSerializeError {
+                    print("Could not serialize \(error.value) as \(error.mapper): ")
+                }
+                return Single.error(error)
+            }
+        }
+        return Single.error(BeckonInvalidCharacteristicError())
+    }
+
+    func write<T>(value: T, to uuid: CBUUID) -> Single<BeckonWriteResponse> where T: BeckonMappable {
+        if let _ = self.characteristics[uuid]?.1,
+            let characteristicID = self.characteristics[uuid]?.0, characteristicID.traits.contains(.write) {
+            do {
+                let data = try value.mapper(value)
+                return self.peripheral.rx.writeValue(data: data, for: characteristicID, with: PriorityInfo(tag: "write", priority: Operation.QueuePriority.normal))
+                    .map { _ in return BeckonWriteResponse() }
+
+            } catch {
+                if let error = error as? BeckonSerializeError {
+                    print("Could not serialize \(error.value) as \(error.mapper): ")
+                }
+                return Single.error(error)
+            }
+        }
+        return Single.error(BeckonInvalidCharacteristicError())
+    }
 
     
     deinit {
@@ -697,6 +784,11 @@ private class BeckonInternalDevice<State>: NSObject, Disposable where State: Bec
         bindings = nil
     }
 }
+
+public struct BeckonWriteResponse {}
+
+public struct BeckonInvalidCharacteristicError: Error {}
+public struct BeckonNoSuchDeviceError: Error {}
 
 public protocol BeckonDescriptor: class {
     var services: [BluetoothServiceUUID]? { get }
