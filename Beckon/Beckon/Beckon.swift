@@ -481,6 +481,20 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
                 self.disconnect(device: device.deviceIdentifier)
             }.subscribe().disposed(by: disposeBag)
         
+        // When saving a new device, keep it connected but switch it over to the paired list
+        self.settingsStore.saved
+            .subscribe(onNext: { [unowned self] savedDevices in
+                for (index, device) in self.connectedDevices.enumerated().reversed() {
+                    if savedDevices.contains(where: { (metadata) -> Bool in
+                        metadata.uuid == device.deviceIdentifier
+                    }) {
+                        self.connectedDevices.remove(at: index)
+                        self.pairedDevices.append(device)
+                        self.devicesSubject.onNext(self.pairedDevices)
+                    }
+                }
+            }).disposed(by: disposeBag)
+        
         //        rescanSubject.onNext(1)
         devicesSubject.onNext([])
     }
