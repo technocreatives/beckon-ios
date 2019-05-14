@@ -179,6 +179,9 @@ public class SettingsStore<Metadata: DeviceMetadata> {
     }
 }
 
+/**
+ Common identifier for connected, disconnected, saved and discovered devices
+ */
 public typealias DeviceIdentifier = UUID
 
 public enum BeckonDeviceStatus<State> where State: BeckonState  {
@@ -186,6 +189,9 @@ public enum BeckonDeviceStatus<State> where State: BeckonState  {
     case connected(state: State)
 }
 
+/**
+ Represents the current state of a saved device.
+ */
 public class BeckonDevice<State, Metadata> where State: BeckonState, Metadata: DeviceMetadata {
     public var deviceIdentifier: DeviceIdentifier {
         return metadata.uuid
@@ -204,7 +210,7 @@ public class BeckonDevice<State, Metadata> where State: BeckonState, Metadata: D
  
  Manages scanning, connection and disconnection of bluetooth devices in a reactive manner.
  
- Supply your `BeckonDescriptor`, `BeckonDevice`, `BeckonState` and `DeviceMetadata` implementations to get
+ Supply your `BeckonDescriptor`, `BeckonState` and `DeviceMetadata` implementations to get
  a fully typed, reactive bluetooth runloop.
  */
 public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadata: DeviceMetadata {
@@ -304,10 +310,16 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
         return nil
     }
     
-    public func state(forDevice deviceIdentifier:UUID) -> Observable<State>? {
-        return device(for: deviceIdentifier)?.state
+    /**
+     Observable of latest state for a connected device.
+     */
+    public func state(forDevice deviceIdentifier: DeviceIdentifier) -> Observable<State> {
+        return device(for: deviceIdentifier)?.state ?? Observable.error(BeckonNoSuchDeviceError())
     }
     
+    /**
+     Poll connected device for updates on a single characteristic
+     */
     public func updateCharacteristic(_ characteristic: CBUUID, for device: DeviceIdentifier) {
         self.device(for: device)?.updateCharacteristic(characteristic)
     }
@@ -553,6 +565,9 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
         //        self.instance.stopScan()
     }
     
+    /**
+     Write a value to a previously specified characteristic
+     */
     public func write<T>(value: T, to characteristicID: WriteOnlyBluetoothCharacteristicUUID<T>, on device: DeviceIdentifier) -> Single<BeckonWriteResponse> where T: BeckonMappable {
         return self.device(for: device)?.write(value: value, to: characteristicID) ?? Single.error(BeckonNoSuchDeviceError())
     }
@@ -804,12 +819,27 @@ public struct BeckonWriteResponse {}
 public struct BeckonInvalidCharacteristicError: Error {}
 public struct BeckonNoSuchDeviceError: Error {}
 
+/**
+ Describes your bluetooth device.
+ */
 public protocol BeckonDescriptor: class {
     var services: [BluetoothServiceUUID]? { get }
     var characteristics: [BluetoothCharacteristicUUID] { get }
     func isPairable(advertisementData: AdvertisementData) -> Bool
 }
 
+/**
+ Extend this and supply to your Beckon instance to get
+ a typesafe state that will be updated as new values
+ are read from the characteristics in your descriptor.
+ 
+ To use keypath mapping and immutable state, define the
+ state in the same file as your characteristics like this:
+ 
+ ```
+ fileprivate(set) var property: <BeckonMappableImplementation>
+ ```
+ */
 public protocol BeckonState: Equatable {
     static var defaultState: Self { get }
 }

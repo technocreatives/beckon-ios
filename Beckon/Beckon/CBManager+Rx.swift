@@ -11,6 +11,9 @@ import CoreBluetooth
 import RxSwift
 import RxCocoa
 
+/**
+ Describes a Bluetooth service
+ */
 public protocol BluetoothServiceUUID {
     var uuid: CBUUID { get }
 }
@@ -21,22 +24,43 @@ public enum CharacteristicTraits {
     case write
 }
 
+/**
+ Describes a Bluetooth characteristic
+ 
+ Usually, you want to use one of the existing implementations,
+ like `WriteOnlyBluetoothCharacteristicUUID`, `ConvertibleBluetoothCharacteristicUUID`,
+ or `CustomBluetoothCharacteristicUUID`.
+ */
 public protocol BluetoothCharacteristicUUID {
     var uuid: CBUUID { get }
     var service: BluetoothServiceUUID { get }
     var traits: [CharacteristicTraits] { get }
 }
 
+/**
+ Data types implementing this can autmatically be mapped to or from
+ characteristics by Beckon
+ 
+ Implement it on your data types to support writing them to characteristics.
+ Because of current limitations, *only the ones implemented by the Beckon framework by
+ default can automatically be mapped to keypaths*.
+ */
 public protocol BeckonMappable {
     func mapper(_ value: Self) throws -> Data
     func mapper(_ data: Data) throws -> Self
 }
 
+/**
+ Represents a failure to map from value to Data
+ */
 struct BeckonSerializeError: Error {
     let value: Any
     let mapper: String
 }
 
+/**
+ Represents a failure to map from Data to value
+ */
 struct BeckonMapperError: Error {
     let data: Data
     let mapper: String
@@ -82,6 +106,9 @@ extension Bool: BeckonMappable {
     }
 }
 
+/**
+ Use this `BluetoothCharacteristicUUID` for Bluetooth characteristics which only supports writing `BeckonMappable`s
+ */
 public struct WriteOnlyBluetoothCharacteristicUUID<ValueType>: BluetoothCharacteristicUUID where ValueType: BeckonMappable {
     public var uuid: CBUUID
     public var service: BluetoothServiceUUID
@@ -93,6 +120,10 @@ public struct WriteOnlyBluetoothCharacteristicUUID<ValueType>: BluetoothCharacte
     }
 }
 
+/**
+ Use this `BluetoothCharacteristicUUID` for Bluetooth characteristics which maps 1:1 with `BeckonMappable` properties
+ on your state using a keypath on your state
+ */
 public struct ConvertibleBluetoothCharacteristicUUID<ValueType, State>: BluetoothCharacteristicUUID where ValueType: BeckonMappable, State: BeckonState {
     
     public var uuid: CBUUID
@@ -109,6 +140,10 @@ public struct ConvertibleBluetoothCharacteristicUUID<ValueType, State>: Bluetoot
     }
 }
 
+/**
+ Use this `BluetoothCharacteristicUUID` for Bluetooth characteristics where you need
+ custom mapping from raw Data to your updated state.
+ */
 public struct CustomBluetoothCharacteristicUUID<State>: BluetoothCharacteristicUUID where State: BeckonState {
     public var uuid: CBUUID
     public var service: BluetoothServiceUUID
