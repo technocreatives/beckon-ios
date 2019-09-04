@@ -843,3 +843,13 @@ public protocol BeckonDescriptor: class {
 public protocol BeckonState: Equatable {
     static var defaultState: Self { get }
 }
+
+let observeQueue = MainScheduler.instance
+let subscribeQueue = ConcurrentMainScheduler.instance
+
+extension ObservableType {
+    public func onBluetoothQueue() -> Observable<E> {
+        return self.observeOn(observeQueue)
+            .subscribeOn(subscribeQueue)
+    }
+}

@@ -151,6 +151,13 @@ public struct CustomBluetoothCharacteristicUUID<State>: BluetoothCharacteristicU
     public var traits: [CharacteristicTraits]
     
     var mapper: ((Data, State) -> State)
+    
+    public init(uuid: CBUUID, service: BluetoothServiceUUID, traits: [CharacteristicTraits], mapper: @escaping ((Data, State) -> State)) {
+        self.uuid = uuid
+        self.service = service
+        self.traits = traits
+        self.mapper = mapper
+    }
 }
 
 public struct AdvertisementData {
@@ -267,13 +274,11 @@ extension Reactive where Base: CBCentralManager {
         let status: Observable<CBManagerState> = proxy.didUpdateStateSubject.filter({ $0 == .poweredOn })
         
         return status
-            .observeOn(MainScheduler.instance)
-            .subscribeOn(MainScheduler.instance) // Dont add
+            .onBluetoothQueue()
             .flatMapLatest { status -> Observable<CBPeripheral> in
                 trace("[Manager] Status trigger: \(status)")
                 return proxy.didConnectSubject
-                    .observeOn(MainScheduler.instance)
-                    //                            .subscribeOn(MainScheduler.instance) // Dont add
+                    .onBluetoothQueue()
                     .do(onNext: { peripheral in
                         trace("[Manager] connect flat map received new peripheral: \(peripheral.identifier)")
                     }, onSubscribe: {
@@ -292,8 +297,6 @@ extension Reactive where Base: CBCentralManager {
             }
             .flatMapLatest { (peripheral: CBPeripheral) -> Observable<([CBService], CBPeripheral)> in
                 return peripheral.rx.discoverServices()
-                    .observeOn(MainScheduler.instance)
-                    //                        .subscribeOn(MainScheduler.instance) // Dont add
                     .asObservable()
                     .map { ($0, peripheral) }
             }
@@ -328,8 +331,7 @@ extension Reactive where Base: CBCentralManager {
                     self.base.cancelPeripheralConnection(peripheral)
                 })
             }
-            .observeOn(MainScheduler.instance)
-            //            .subscribeOn(MainScheduler.instance) // Dont add
+            .onBluetoothQueue()
             .filter({ $0.0.identifier == peripheral.identifier })
             .take(1)
             .flatMap({ (tuple) -> Observable<CBPeripheral> in
@@ -353,8 +355,7 @@ extension Reactive where Base: CBCentralManager {
                 debug("onCompleted stopScan")
                 self.base.stopScan()
             })
-            .observeOn(MainScheduler.instance)
-        //                .subscribeOn(MainScheduler.instance) // Dont add
+            .onBluetoothQueue()
     }
     
     var state: Observable<CBManagerState> {

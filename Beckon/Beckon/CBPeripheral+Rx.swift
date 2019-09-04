@@ -11,8 +11,6 @@ import CoreBluetooth
 import RxSwift
 import RxCocoa
 
-let scheduler = ConcurrentMainScheduler.instance
-
 extension CBPeripheral: HasDelegate {
     public typealias Delegate = CBPeripheralDelegate
 }
@@ -269,8 +267,7 @@ extension Reactive where Base: CBPeripheral {
         
         return RxCBPeripheralDelegateProxy.proxy(for: self.base)
             .didDiscoverCharacteristicsSubject
-            .observeOn(scheduler)
-            .subscribeOn(scheduler)
+//            .onBluetoothQueue()
             .do(onSubscribe: {
                 debug("Begin discover characteristics request")
                 self.base.discoverCharacteristics(nil, for: service)
@@ -291,7 +288,10 @@ extension Reactive where Base: CBPeripheral {
             //                    return false
             //                }
             .flatMapLatest({ (tuple) -> Observable<[CBCharacteristic]> in
-                if let error = tuple.1 { return Observable.error(error) }
+                if let error = tuple.1 {
+                    debug("Characteristic request errored")
+                    return Observable.error(error)
+                }
                 return Observable.just(tuple.0.characteristics ?? [])
             })
             .take(1)
@@ -306,8 +306,7 @@ extension Reactive where Base: CBPeripheral {
         
         return RxCBPeripheralDelegateProxy.proxy(for: self.base)
             .didDiscoverServicesSubject
-            .observeOn(scheduler)
-            .subscribeOn(scheduler)
+            .onBluetoothQueue()
             .do(onSubscribe: {
                 debug("Begin discover services request")
                 self.base.discoverServices(nil)
@@ -344,6 +343,9 @@ extension Reactive where Base: CBPeripheral {
     func readValue(for characteristicUUID: BluetoothCharacteristicUUID, with info: PriorityInfo) -> Single<CBCharacteristic> {
         return characteristic(for: characteristicUUID, with: info)
             .flatMap { self.base.rx.readValue(for: $0, with: info) }
+            .asObservable()
+            .onBluetoothQueue()
+            .asSingle()
         //                .observeOn(scheduler)
         //                .subscribeOn(scheduler)
     }
@@ -351,8 +353,7 @@ extension Reactive where Base: CBPeripheral {
     private func readValue(for characteristic: CBCharacteristic, with info: PriorityInfo) -> Single<CBCharacteristic> {
         return RxCBPeripheralDelegateProxy.proxy(for: self.base)
             .didUpdateValueSubject
-            //                .observeOn(scheduler)
-            //                .subscribeOn(scheduler)
+            .onBluetoothQueue()
             .do(onSubscribe: { self.base.readValue(for: characteristic) })
             .filter({ $0.0.uuid == characteristic.uuid })
             .take(1)
@@ -367,8 +368,7 @@ extension Reactive where Base: CBPeripheral {
         return characteristic(for: characteristicUUID, with: info)
             .flatMap { self.base.rx.writeValue(data: data, for: $0, with: info) }
             .asObservable()
-            .observeOn(scheduler)
-            .subscribeOn(scheduler)
+            .onBluetoothQueue()
             .filter({ $0.uuid == characteristicUUID.uuid })
             .take(1)
             .asSingle()
@@ -377,8 +377,7 @@ extension Reactive where Base: CBPeripheral {
     private func writeValue(data: Data, for characteristic: CBCharacteristic, with info: PriorityInfo) -> Single<CBCharacteristic> {
         return RxCBPeripheralDelegateProxy.proxy(for: self.base)
             .didWriteValueCharacteristicSubject
-            .observeOn(scheduler)
-            .subscribeOn(scheduler)
+            .onBluetoothQueue()
             .do(onSubscribe: { self.base.writeValue(data, for: characteristic, type: .withResponse) })
             .filter({ $0.0.uuid == characteristic.uuid })
             .take(1)
@@ -392,8 +391,7 @@ extension Reactive where Base: CBPeripheral {
     private func watchValue(for characteristic: CBCharacteristic, with info: PriorityInfo) -> Observable<CBCharacteristic> {
         return RxCBPeripheralDelegateProxy.proxy(for: self.base)
             .didUpdateValueSubject
-            .observeOn(scheduler)
-            .subscribeOn(scheduler)
+            .onBluetoothQueue()
             .filter({ $0.0.uuid == characteristic.uuid })
             .flatMap({ (tuple) -> Observable<CBCharacteristic> in
                 if let error = tuple.1 { return Observable.error(error) }
@@ -411,8 +409,7 @@ extension Reactive where Base: CBPeripheral {
     private func setNotifyValue(_ enabled: Bool, for characteristic: CBCharacteristic, with info: PriorityInfo) -> Single<CBCharacteristic> {
         return RxCBPeripheralDelegateProxy.proxy(for: self.base)
             .didUpdateNotificationStateSubject
-            .observeOn(scheduler)
-            .subscribeOn(scheduler)
+            .onBluetoothQueue()
             .do(onSubscribe: {
                 debug("setNotifyValue onSubscribe")
                 self.base.setNotifyValue(enabled, for: characteristic)
@@ -440,8 +437,7 @@ extension Reactive where Base: CBPeripheral {
             .filter({ tuple in
                 tuple.0.uuid == characteristicUUID.uuid
             })
-            .observeOn(scheduler)
-            .subscribeOn(scheduler)
+            .onBluetoothQueue()
             .flatMapLatest({ (tuple) -> Observable<CBCharacteristic> in
                 if let error = tuple.1 { return Observable.error(error) }
                 return Observable.just(tuple.0)
