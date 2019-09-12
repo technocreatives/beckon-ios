@@ -40,8 +40,10 @@ class NoopBluetoothDelegate: NSObject, CBCentralManagerDelegate {
             DispatchQueue.main.async {
                 for peripheral in peripherals {
                     if central.state == .poweredOn {
+                        debug("[RxBt] Restoring state while powered on")
                         self.sendNotification(peripheral: peripheral)
                     } else {
+                        debug("[RxBt] Restoring state while __NOT__ POWERED ON")
                         self.holdPeripherals.append(peripheral)
                     }
                 }
@@ -51,11 +53,15 @@ class NoopBluetoothDelegate: NSObject, CBCentralManagerDelegate {
     
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         if central.state == .poweredOn {
+            debug("[RxBt] didUpdateState on centralManager during poweredOn")
+            
             for peripheral in holdPeripherals {
                 self.sendNotification(peripheral: peripheral)
             }
             
             holdPeripherals.removeAll()
+        } else {
+            debug("[RxBt] didUpdateState on centralManager during \(central.state.debugDescription)")
         }
     }
 }
@@ -332,6 +338,29 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
     public init(appID: String = Bundle.main.bundleIdentifier!, descriptor: BeckonDescriptor) {
         self.appID = appID
         self.delegate = descriptor
+        
+        self.devicesSubject.subscribe(onNext: {
+            trace("[RxBt] (devicesSubject) Current devices: \($0.map { $0.peripheral.name ?? "UNKNOWN" })")
+        }, onError: {
+            trace("[RxBt] (devicesSubject) Devices subject did error: \($0)")
+        }, onCompleted: {
+            trace("[RxBt] (devicesSubject) Devices subject completed")
+        }, onDisposed: {
+            trace("[RxBt] (devicesSubject) Devices subject disposed")
+        }).disposed(by: disposeBag)
+        
+        defer {
+            self.devices.subscribe(onNext: {
+                trace("[RxBt] (instance) Current devices: \($0)")
+            }, onError: {
+                trace("[RxBt] (instance) Devices subject did error: \($0)")
+            }, onCompleted: {
+                trace("[RxBt] (instance) Devices subject completed")
+            }, onDisposed: {
+                trace("[RxBt] (instance) Devices subject disposed")
+            }).disposed(by: disposeBag)
+        }
+        
         instance = Beckon.makeInstance(key: "\(appID).CentralManagerIdentifier")
         settingsStore = SettingsStore<Metadata>(appID: appID)
         super.init()
@@ -391,7 +420,8 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
     */
     private func setup() {
         // Listen for restored peripherals catched by the NoopBluetoothDelegate
-        NotificationCenter.default.rx.notification(Notification.Name(BECKON_RESTORE_PERIPHERAL_NOTIFICATION))
+        NotificationCenter.default.rx
+            .notification(Notification.Name(BECKON_RESTORE_PERIPHERAL_NOTIFICATION))
             .subscribe(onNext: { [unowned self] notification in
                 if let peripheral = notification.userInfo?[BECKON_RESTORE_PERIPHERAL_USER_INFO] as? CBPeripheral {
                     self.restoredPeripheralsSubject.onNext(peripheral)
@@ -417,59 +447,121 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
             }).disposed(by: disposeBag)
         
         // Main connection loop
+        let newDevicesObservable = self.instance.rx
+            .state
+            .filter { state in return (CBManagerState.poweredOn == state) }
+            .flatMapLatest { [unowned self] _ in return self.rescanSubject.asObservable() }
+            .flatMapLatest { _ in
+                self.instance.rx.scanForPeripherals(withServices: self.delegate.services.map { $0.uuid })
+            }
+            .do(onNext: { trace("[X] (SETUP) Found \($0.peripheral.name!), is it pairable?") })
+            .filter {
+                // Entry point for selecting only paired
+                self.delegate.isPairable(advertisementData: $0.data)
+            }
+            .do(onNext: { trace("[X] (SETUP) onNext isPairable: \($0.peripheral.name!)") }, onCompleted: { trace("[X] (SETUP) Completed scanning") })
+            .filter { [unowned self] dp in
+                // This is probably kinda slow
+                return (self.settingsStore.getSavedDevices()).map { $0.uuid }.contains(dp.peripheral.identifier)
+            }
+            .do(onNext: { trace("[X] (SETUP) Pairable: \($0.peripheral.name!)") })
+            .map { it -> CBPeripheral in
+                return it.peripheral
+            }
+        
+        let shadowConnected = { () -> [CBPeripheral] in
+            self.instance.retrieveConnectedPeripherals(withServices: self.delegate.services.map { $0.uuid })
+                .filter { peripheral in
+                    self.delegate.isPairable(
+                        advertisementData: AdvertisementData(
+                            services: peripheral.services?.map { serv in serv.uuid } ?? [],
+                            name: peripheral.name ?? ""
+                        )
+                    )
+                }
+                .filter { [unowned self] peripheral in
+                    return (self.settingsStore.getSavedDevices()).map { $0.uuid }.contains(peripheral.identifier)
+                }
+        }
+        
+        let retrievedPeripherals = { () -> Set<CBPeripheral> in
+            let savedDevices = self.settingsStore.getSavedDevices()
+            
+            var retrievedPeripherals = Set<CBPeripheral>()
+            self.instance.retrievePeripherals(withIdentifiers: savedDevices.map { $0.uuid }).forEach { retrievedPeripherals.insert($0) }
+            
+            return retrievedPeripherals
+        }
+        
         self.instance.rx
             .state
+            .do(onNext: { x in debug("[RxBt] Checking state: \(x)") })
             .filter { state in return CBManagerState.poweredOn == state }
+            .do(onNext: { _ in debug("[RxBt] State claims to be powered on") })
             .distinctUntilChanged()
-            .observeOn(MainScheduler.instance)
-            .subscribeOn(MainScheduler.instance)
+            .onBluetoothQueue()
             .flatMapLatest { [unowned self] _ in return self.rescanSubject.asObservable() }
-            .flatMapLatest({ [unowned self] _ -> Observable<CBPeripheral> in
-                let devices = self.settingsStore.getSavedDevices()
+            .flatMapLatest { _ in
+                Observable<CBPeripheral>.merge(
+                    newDevicesObservable,
+                    Observable.from(shadowConnected()),
+                    self.restoredPeripheralsSubject,
+                    Observable.from(retrievedPeripherals())
+                )
+                // Not latest or it will only connect to the latest device it sees.
+                .flatMap { peripheral -> Observable<CBPeripheral> in
+                    trace("[X] (SETUP) \(peripheral.name!) state -> \(peripheral.state)")
                 
-                var peripherals = Set<CBPeripheral>()
-                self.instance.retrievePeripherals(withIdentifiers: devices.map { $0.uuid }).forEach { peripherals.insert($0) }
-                if let services = self.delegate.services {
-                    self.instance.retrieveConnectedPeripherals(withServices: services.map { $0.uuid }).forEach { peripherals.insert($0) }
-                    
-                    return Observable.merge(Observable.from(peripherals.map { $0 }),
-                                            self.instance.rx.scanForPeripherals(withServices: services.map { $0.uuid }).filter { self.delegate.isPairable(advertisementData: $0.data) }.map { dp in dp.peripheral }, self.restoredPeripheralsSubject)
+                    if peripheral.state == .connected {
+                        trace("[X] (SETUP) \(peripheral.name!) is already connected")
+                        return self.instance.rx.hydrate(peripheral).asObservable()
+                    } else if peripheral.state == .connecting {
+                        return peripheral.rx.state
+                            .filter { pstate in pstate != CBPeripheralState.connecting }
+                            .flatMapLatest { pstate -> Observable<CBPeripheral> in
+                                if pstate != CBPeripheralState.connected {
+                                    trace("[X] (SETUP) \(peripheral.name!) went from connecting to faulty state -> \(pstate)")
+                                    return Observable.empty()
+                                }
+
+                                trace("[X] (SETUP) \(peripheral.name!) connecting -> CONNECTED")
+                                return self.instance.rx.hydrate(peripheral).asObservable()
+                            }
+                    } else if peripheral.state == CBPeripheralState.disconnecting {
+                        trace("[X] (SETUP) \(peripheral.name!) waiting for disconnect")
+                        return peripheral.rx.state
+                            .filter { pstate in pstate != CBPeripheralState.disconnected }
+                            .flatMap { _ -> Single<CBPeripheral> in
+                                trace("[X] (SETUP) \(peripheral.name!) reconnect")
+                                return self.instance.rx.connect(peripheral)
+                            }.asObservable()
+                    } else {
+                        trace("[X] (SETUP) \(peripheral.name!) connect is fired")
+                        return self.instance.rx.connect(peripheral).asObservable()
+                    }
                 }
-                return Observable.merge(Observable.from(peripherals.map { $0 }),
-                                        self.instance.rx.scanForPeripherals(withServices: nil).filter { self.delegate.isPairable(advertisementData: $0.data) }.map { dp in dp.peripheral }, self.restoredPeripheralsSubject)
-                
-            })
-            .observeOn(MainScheduler.instance)
-            .subscribeOn(MainScheduler.instance)
-            .filter { [unowned self] peripheral in
-                // This is probably kinda slow
-                return (self.settingsStore.getSavedDevices()).map { $0.uuid }.contains(peripheral.identifier)
             }
-            .do(onNext: { p in
-                print("willConnect: \(p)")
-            })
-            .flatMap { [unowned self] peripheral -> Single<CBPeripheral> in
-                if peripheral.state == CBPeripheralState.connected {
-                    return Single.just(peripheral)
-                } else {
-                    return self.instance.rx.connect(peripheral)
-                }
-            }
-            .do(onNext: { p in
-                print("hasConnected: \(p)")
-            })
-            .observeOn(MainScheduler.instance)
-            .subscribeOn(MainScheduler.instance)
             .filter({ (peripheral) -> Bool in
                 !self.pairedDevices.contains(where: { (device) -> Bool in
                     device.peripheral == peripheral
                 })
             })
+            .do(onNext: { p in
+                trace("[X] (SETUP) hasConnected: \(p.identifier) '\(p.name!)")
+            })
             .subscribe(onNext: { [weak self] peripheral in
-                if let self = self, let device = Device(peripheral: peripheral, descriptor: self.delegate) {
+                guard let `self` = self else { return }
+                
+                trace("[X] (SETUP) Creating a device for peripheral: \(peripheral.name!)")
+                if let device = Device(peripheral: peripheral, descriptor: self.delegate) {
                     self.pairedDevices.removeAll(where: { (pairedDevice) -> Bool in
-                        pairedDevice.peripheral.identifier == device.peripheral.identifier
+                        let v = pairedDevice.peripheral.identifier == device.peripheral.identifier
+                        if v {
+                            trace("[X] (SETUP) Removing to update paired device: \(pairedDevice.peripheral.identifier) '\(device.peripheral.name!)'")
+                        }
+                        return v
                     })
+                    debug("[X] (SETUP) Added device \(peripheral.identifier) '\(peripheral.name!)'")
                     self.pairedDevices.append(device)
                     self.devicesSubject.onNext(self.pairedDevices)
                 }
@@ -491,7 +583,9 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
             .map { [unowned self] device in
                 // NOTE: Side effects
                 self.disconnect(device: device.deviceIdentifier)
-            }.subscribe().disposed(by: disposeBag)
+            }
+            .subscribe()
+            .disposed(by: disposeBag)
         
         // When saving a new device, keep it connected but switch it over to the paired list
         self.settingsStore.saved
@@ -518,36 +612,68 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
      using `Beckon.settingsStore.saveDevice(_)`.
     */
     public func search() -> Observable<DiscoveredDevice> {
-        return self.instance.rx
+        let newDevicesObservable = self.instance.rx
             .state
             .filter { state in return (CBManagerState.poweredOn == state) }
-            .observeOn(MainScheduler.instance)
-            .subscribeOn(MainScheduler.instance)
             .flatMapLatest { _ in
-                self.instance.rx.scanForPeripherals(withServices: self.delegate.services?.map { $0.uuid })
+                self.instance.rx.scanForPeripherals(
+                    withServices: self.delegate.services.map { $0.uuid })
             }
-            .observeOn(MainScheduler.instance)
-            .subscribeOn(MainScheduler.instance)
-            .do(onNext: { print("Found \($0), is it pairable?") })
+            .do(onNext: { trace("[X] (SEARCH) Found \($0.peripheral.name!), is it pairable?") })
             .filter {
-                self.delegate.isPairable(advertisementData: $0.data)  } // Entry point for selecting only paired
-            .do(onNext: { print($0) }, onCompleted: { print("Completed scanning") })
+                // Entry point for selecting only paired
+                self.delegate.isPairable(advertisementData: $0.data)
+            }
+            .do(onNext: { print($0) }, onCompleted: { trace("[X] (SEARCH) Completed scanning") })
             .filter { [unowned self] dp in
                 // This is probably kinda slow
-                return !(self.settingsStore.getSavedDevices()).map { $0.uuid }.contains(dp.peripheral.identifier)
+                return !(self.settingsStore.getSavedDevices()
+                    .map { $0.uuid }
+                    .contains(dp.peripheral.identifier))
             }
-            .flatMap { [unowned self] discovered in
-                return self.instance.rx.connect(discovered.peripheral) }
-            .observeOn(MainScheduler.instance)
-            .subscribeOn(MainScheduler.instance)
+            .flatMap({ [unowned self] discovered -> Observable<CBPeripheral> in
+                trace("[X] (SEARCH) connect is fired")
+                return self.instance.rx.connect(discovered.peripheral).asObservable() })
+        
+        let shadowConnected = self.instance.retrieveConnectedPeripherals(
+                withServices: self.delegate.services.map { $0.uuid })
+            .filter { peripheral in
+                let data = AdvertisementData(
+                    services: peripheral.services?.map { serv in serv.uuid } ?? [],
+                    name: peripheral.name ?? "")
+                return self.delegate.isPairable(advertisementData: data)
+            }
+            .filter { [unowned self] peripheral in
+                return !(self.settingsStore.getSavedDevices()
+                    .map { $0.uuid }
+                    .contains(peripheral.identifier))
+            }
+        
+        return Observable<CBPeripheral>.merge(newDevicesObservable, Observable.from(shadowConnected)
+            .flatMap { peripheral -> Observable<CBPeripheral> in
+                if peripheral.state == .connected {
+                    return Observable.just(peripheral)
+                } else if peripheral.state == .connecting {
+                    return peripheral.rx.state
+                        .filter { pstate in
+                            pstate == CBPeripheralState.connected
+                        }
+                        .take(1)
+                        .flatMap { _ in Observable.just(peripheral) }
+                } else {
+                    trace("[X] (SEARCH) catch all connect is fired")
+                    return self.instance.rx.connect(peripheral).asObservable()
+                }
+            })
+            .onBluetoothQueue()
             .map { [unowned self] peripheral in
                 return Device(peripheral: peripheral, descriptor: self.delegate)
             }
-            .flatMapLatest({ device -> Observable<Device> in
+            .flatMap({ device -> Observable<Device> in
                 return device.map {
                     self.connectedDevices.append($0)
                     return Observable.just($0)
-                    } ?? Observable.empty()
+                } ?? Observable.empty()
             })
             .map {
                 return DiscoveredDevice(uuid: $0.deviceIdentifier)
@@ -602,7 +728,7 @@ private class BeckonInternalDevice<State>: NSObject, Disposable where State: Bec
     private let disposeBag = DisposeBag()
     
     required public init?(peripheral: CBPeripheral, descriptor: BeckonDescriptor) {
-        
+        trace("[RxBt] (InternalDevice) Init '\(peripheral.name!)'")
         self.peripheral = peripheral
         
         let characteristicIDs = descriptor.characteristics
@@ -612,12 +738,25 @@ private class BeckonInternalDevice<State>: NSObject, Disposable where State: Bec
             let serviceCharacteristics = cbService.characteristics ?? []
             
             for cbCharacteristic in serviceCharacteristics {
-                if let characteristicID = characteristicIDs.first(where: { characteristicUUID in characteristicUUID.uuid.uuidString == cbCharacteristic.uuid.uuidString }) {
+                if let characteristicID = characteristicIDs.first(where: {
+                    characteristicUUID in characteristicUUID.uuid.uuidString == cbCharacteristic.uuid.uuidString
+                }) {
                     self.services[cbService.uuid] = (characteristicID.service, cbService)
 
                     self.characteristics[characteristicID.uuid] = (characteristicID, cbCharacteristic)
                 }
             }
+        }
+        
+        trace("[RxBt] (InternalDevice) Services count: \(self.services.count)")
+        trace("[RxBt] (InternalDevice) Characteristics count: \(self.characteristics.count)")
+        
+        let a = (self.services.count < descriptor.services.count)
+        let b = (self.characteristics.count < descriptor.characteristics.count)
+        
+        if a || b {
+            debug("[RxBt] (InternalDevice) Init: Too few services or characteristics; returning nil!")
+            return nil
         }
         
         super.init()
@@ -629,11 +768,13 @@ private class BeckonInternalDevice<State>: NSObject, Disposable where State: Bec
     private var bindings: Bindings<BluetoothCharacteristicUUID>! = nil
     
     public private(set) lazy var state: Observable<State>! = {
+        trace("[RxBt] (InternalDevice) State initializing")
         let x = Observable.system(
             initialState: State.defaultState,
             reduce: { [unowned self] in self.reducer(characteristicID: $1, oldState: $0) },
-            scheduler: MainScheduler.instance,
+            scheduler: ConcurrentMainScheduler.instance,
             scheduledFeedback: RxFeedback.bind { [unowned self] state in
+                trace("[RxBt] (InternalDevice) State feedback binding triggered")
                 let bindings = Bindings(subscriptions: [Disposable](), mutations: self.subscriptions())
                 self.bindings = bindings
                 return bindings
@@ -644,24 +785,60 @@ private class BeckonInternalDevice<State>: NSObject, Disposable where State: Bec
     }()
     
     private func subscriptions() -> [Observable<BluetoothCharacteristicUUID>] {
-        
-        return characteristics
-            .filter { char in char.value.0.traits.contains(where: { trait in trait == .notify || trait == .read }) }
-            .map { (arg) -> Observable<BluetoothCharacteristicUUID> in
+        debug("[RxBt] (InternalDevice) self.subscriptions() called")
+        let notifyAndReadCharacteristics = self.characteristics
+            .filter { char in
+                char.value.0.traits.contains(where: { trait in trait == .notify || trait == .read })
+            }
+            
+        return notifyAndReadCharacteristics.map { (arg) -> Observable<BluetoothCharacteristicUUID> in
             let (_, (id, _)) = arg
             let uuidString = id.uuid.uuidString
             
+            trace("[RxBt] (InternalDevice) \(self.peripheral.name!) Checking read and notify traits")
             if id.traits.contains(.notify) {
-                _ = peripheral.rx.setNotifyValue(true, for: id, with: PriorityInfo(tag: "notify.\(uuidString)", priority: Operation.QueuePriority.normal)).subscribe()
+                trace("[RxBt] (InternalDevice) \(self.peripheral.name!) Notify required")
+                _ = peripheral.rx.setNotifyValue(
+                    true,
+                    for: id,
+                    with: PriorityInfo(
+                        tag: "notify.\(uuidString)",
+                        priority: Operation.QueuePriority.normal
+                    )
+                ).subscribe()
             }
             if id.traits.contains(.read) {
-                _ = peripheral.rx.readValue(for: id, with: PriorityInfo(tag: "read.\(uuidString)", priority: Operation.QueuePriority.normal)).subscribe()
+                trace("[RxBt] (InternalDevice) \(self.peripheral.name!) Read required")
+                _ = peripheral.rx.readValue(
+                    for: id,
+                    with: PriorityInfo(
+                        tag: "read.\(uuidString)",
+                        priority: Operation.QueuePriority.normal
+                    )
+                ).subscribe()
             }
             
-            return self.peripheral.rx.watchValue(for: id, with: PriorityInfo(tag: "watch.\(uuidString)", priority: Operation.QueuePriority.normal))
-                .map { _ in
-                    return id
-                }.do(onSubscribe: { print("Watching \(uuidString)") }, onDispose: { print("Stopped watching \(uuidString)") })
+            trace("[RxBt] (InternalDevice) \(self.peripheral.name!) Requesting to watch value \(uuidString)")
+            return self.peripheral.rx.watchValue(
+                for: id,
+                with: PriorityInfo(
+                    tag: "watch.\(uuidString)",
+                    priority: Operation.QueuePriority.normal
+                )
+            )
+            .map { _ in
+                return id
+            }.do(
+                onSubscribe: {
+                    trace("[RxBt] (InternalDevice) Trying to watch: \(self.peripheral.name ?? "FUUU") \(uuidString)")
+                },
+                onSubscribed: {
+                    trace("[RxBt] (InternalDevice) Successfully watching: \(self.peripheral.name ?? "FUUU") \(uuidString)")
+                },
+                onDispose: {
+                    trace("[RxBt] (InternalDevice) Stopped watching: \(self.peripheral.name ?? "FUUU") \(uuidString)")
+                }
+            )
         }
     }
     
@@ -670,7 +847,13 @@ private class BeckonInternalDevice<State>: NSObject, Disposable where State: Bec
             return
         }
         let uuidString = id.uuid.uuidString
-        _ = peripheral.rx.readValue(for: id, with: PriorityInfo(tag: "read.\(uuidString)", priority: Operation.QueuePriority.normal)).subscribe()
+        _ = peripheral.rx.readValue(
+            for: id,
+            with: PriorityInfo(
+                tag: "read.\(uuidString)",
+                priority: Operation.QueuePriority.normal
+            )
+        ).subscribe()
     }
     
     func setter<Object: AnyObject, Value>(
@@ -684,13 +867,17 @@ private class BeckonInternalDevice<State>: NSObject, Disposable where State: Bec
     
     open func reducer(characteristicID: BluetoothCharacteristicUUID, oldState: State) -> State {
         guard let data = self.characteristics[characteristicID.uuid]?.1.value else {
+            trace("[Reducer] Reducer ran without finding data! \(characteristicID.uuid.uuidString)")
             return oldState
         }
         
         // Custom mappers
         if let custom = characteristicID as? CustomBluetoothCharacteristicUUID<State> {
+            trace("[Reducer] Using custom mapper: \(custom)")
             return custom.mapper(data, oldState)
         }
+        
+        trace("[Reducer] Trying BeckonMappable reducers")
         
         // The automaticly convertable characteristics all need to be tested here,
         // because Swift's generics aren't covariant... Adding a BeckonMappable means
@@ -706,6 +893,8 @@ private class BeckonInternalDevice<State>: NSObject, Disposable where State: Bec
         if let convertible = characteristicID as? ConvertibleBluetoothCharacteristicUUID<Bool, State> {
             return self.reducer(data: data, convertible: convertible, oldState: oldState)
         }
+        
+        trace("[Reducer] Could not parse data, returning old state!")
 
         return oldState
     }
@@ -799,10 +988,13 @@ private class BeckonInternalDevice<State>: NSObject, Disposable where State: Bec
 
     
     deinit {
+        trace("[InternalDevice] DEINIT")
         dispose()
     }
     
     public func dispose() {
+        trace("[InternalDevice] DISPOSE")
+        
         connectedDeviceState?.dispose()
         connectedDeviceState = nil
         
@@ -811,6 +1003,8 @@ private class BeckonInternalDevice<State>: NSObject, Disposable where State: Bec
         
         deviceStateSubject = nil
         bindings = nil
+        
+        trace("[InternalDevice] DISPOSED")
     }
 }
 
@@ -823,7 +1017,7 @@ public struct BeckonNoSuchDeviceError: Error {}
  Describes your bluetooth device.
  */
 public protocol BeckonDescriptor: class {
-    var services: [BluetoothServiceUUID]? { get }
+    var services: [BluetoothServiceUUID] { get }
     var characteristics: [BluetoothCharacteristicUUID] { get }
     func isPairable(advertisementData: AdvertisementData) -> Bool
 }
@@ -844,12 +1038,13 @@ public protocol BeckonState: Equatable {
     static var defaultState: Self { get }
 }
 
-let observeQueue = MainScheduler.instance
-let subscribeQueue = ConcurrentMainScheduler.instance
+let observeQueue = MainScheduler.instance //SerialDispatchQueueScheduler.init(internalSerialQueueName: "obs")
+let subscribeQueue = ConcurrentMainScheduler.instance //SerialDispatchQueueScheduler.init(internalSerialQueueName: "sub")
 
 extension ObservableType {
     public func onBluetoothQueue() -> Observable<E> {
-        return self.observeOn(observeQueue)
-            .subscribeOn(subscribeQueue)
+        return self.map { $0 }
+//            .observeOn(observeQueue)
+//            .subscribeOn(subscribeQueue)
     }
 }

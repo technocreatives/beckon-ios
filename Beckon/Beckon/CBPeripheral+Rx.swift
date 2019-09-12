@@ -200,7 +200,9 @@ class RxCBPeripheralDelegateProxy: DelegateProxy<CBPeripheral, CBPeripheralDeleg
             trace("[Proxy] peripheral(\(peripheral.identifier)) service: \($0)")
         }
         _forwardToDelegate?.peripheral?(peripheral, didDiscoverServices: error)
-        didDiscoverServicesSubject.onNext((peripheral.services ?? [], error))
+        DispatchQueue.main.async {
+            self.didDiscoverServicesSubject.onNext((peripheral.services ?? [], error))
+        }
     }
     
     func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
@@ -210,27 +212,37 @@ class RxCBPeripheralDelegateProxy: DelegateProxy<CBPeripheral, CBPeripheralDeleg
         service.characteristics?.forEach {
             trace("[Proxy] peripheral(\(peripheral.identifier)) characteristic: \($0)")
         }
-        _forwardToDelegate?.peripheral?(peripheral, didDiscoverCharacteristicsFor: service, error: error)
         //        let characteristics = service.characteristics ?? []
-        didDiscoverCharacteristicsSubject.onNext((service, error))
+        
+        DispatchQueue.main.async {
+            self._forwardToDelegate?.peripheral?(peripheral, didDiscoverCharacteristicsFor: service, error: error)
+            self.didDiscoverCharacteristicsSubject.onNext((service, error))
+        }
     }
     
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         debug("[Proxy] Peripheral: \(peripheral.identifier) didUpdateValueFor: \(characteristic.uuid)")
-        _forwardToDelegate?.peripheral?(peripheral, didUpdateValueFor: characteristic, error: error)
-        didUpdateValueSubject.onNext((characteristic, error))
+        
+        DispatchQueue.main.async {
+            self._forwardToDelegate?.peripheral?(peripheral, didUpdateValueFor: characteristic, error: error)
+            self.didUpdateValueSubject.onNext((characteristic, error))
+        }
     }
     
     func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
         debug("[Proxy] Peripheral: \(peripheral.identifier) didWriteValueFor: \(characteristic.uuid)")
-        _forwardToDelegate?.peripheral?(peripheral, didWriteValueFor: characteristic, error: error)
-        didWriteValueCharacteristicSubject.onNext((characteristic, error))
+        DispatchQueue.main.async {
+            self._forwardToDelegate?.peripheral?(peripheral, didWriteValueFor: characteristic, error: error)
+            self.didWriteValueCharacteristicSubject.onNext((characteristic, error))
+        }
     }
     
     func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
         debug("[Proxy] Peripheral: \(peripheral.identifier) didUpdateNotificationStateFor: \(characteristic.uuid)")
-        _forwardToDelegate?.peripheral?(peripheral, didUpdateNotificationStateFor: characteristic, error: error)
-        didUpdateNotificationStateSubject.onNext((characteristic, error))
+        DispatchQueue.main.async {
+            self._forwardToDelegate?.peripheral?(peripheral, didUpdateNotificationStateFor: characteristic, error: error)
+            self.didUpdateNotificationStateSubject.onNext((characteristic, error))
+        }
     }
     
     deinit {
@@ -251,6 +263,7 @@ extension Reactive where Base: CBPeripheral {
     
     public var state: Observable<CBPeripheralState> {
         return base.rx.observe(CBPeripheralState.self, "state")
+            .observeOn(MainScheduler.instance)
             .flatMapLatest { (state: CBPeripheralState?) -> Observable<CBPeripheralState> in
                 guard let state = state else {
                     return Observable.empty()
@@ -261,36 +274,31 @@ extension Reactive where Base: CBPeripheral {
     
     //    func discoverCharacteristics(_ characteristicUUIDs: [CBUUID]?, for service: CBService) -> Single<[CBCharacteristic]> {
     func discoverCharacteristics(for service: CBService) -> Single<[CBCharacteristic]> {
-        //        if let characteristics = service.characteristics {
-        //            return Single.just(characteristics)
-        //        }
+        debug("[discoverCharacteristics] Called discoverCharacteristics: \(self.base.name!)")
+        
+        if let characteristics = service.characteristics {
+            debug("[discoverCharacteristics] Returning cached characteristics: \(self.base.name!)")
+            return Single.just(characteristics)
+        }
         
         return RxCBPeripheralDelegateProxy.proxy(for: self.base)
             .didDiscoverCharacteristicsSubject
-//            .onBluetoothQueue()
             .do(onSubscribe: {
-                debug("Begin discover characteristics request")
+                debug("[discoverCharacteristics] Begin discover characteristics request: \(self.base.name!)")
                 self.base.discoverCharacteristics(nil, for: service)
             })
             .filter {
                 $0.0.uuid == service.uuid
             }
-            .do(onNext: { _ in debug("Discover characteristics request completed; values received") })
-            //                .filter {
-            //                    guard let uuids = characteristicUUIDs else {
-            //                        return true
-            //                    }
-            //
-            //                    if let _ = $0.0.first(where: { uuids.contains($0.uuid) }) {
-            //                        return true
-            //                    }
-            //
-            //                    return false
-            //                }
+            .do(onNext: { _ in debug("[discoverCharacteristics] Discover characteristics request completed; values received: \(self.base.name!)") })
             .flatMapLatest({ (tuple) -> Observable<[CBCharacteristic]> in
                 if let error = tuple.1 {
-                    debug("Characteristic request errored")
+                    debug("[discoverCharacteristics] request errored: \(self.base.name!)")
                     return Observable.error(error)
+                }
+                
+                if tuple.0.characteristics == nil {
+                    debug("[discoverCharacteristics] EMPTY CHARACTERISTICS!: \(self.base.name!)")
                 }
                 return Observable.just(tuple.0.characteristics ?? [])
             })
@@ -298,11 +306,11 @@ extension Reactive where Base: CBPeripheral {
             .asSingle()
     }
     
-    //    func discoverServices(_ serviceUUIDs: [CBUUID]?) -> Single<[CBService]> {
     func discoverServices() -> Single<[CBService]> {
-        //        if let services = base.services {
-        //            return Single.just(services)
-        //        }
+        if let services = base.services {
+            debug("[discoverServices] Returning cached services")
+            return Single.just(services)
+        }
         
         return RxCBPeripheralDelegateProxy.proxy(for: self.base)
             .didDiscoverServicesSubject
@@ -346,8 +354,6 @@ extension Reactive where Base: CBPeripheral {
             .asObservable()
             .onBluetoothQueue()
             .asSingle()
-        //                .observeOn(scheduler)
-        //                .subscribeOn(scheduler)
     }
     
     private func readValue(for characteristic: CBCharacteristic, with info: PriorityInfo) -> Single<CBCharacteristic> {
@@ -367,8 +373,7 @@ extension Reactive where Base: CBPeripheral {
     func writeValue(data: Data, for characteristicUUID: BluetoothCharacteristicUUID, with info: PriorityInfo) -> Single<CBCharacteristic> {
         return characteristic(for: characteristicUUID, with: info)
             .flatMap { self.base.rx.writeValue(data: data, for: $0, with: info) }
-            .asObservable()
-            .onBluetoothQueue()
+            .asObservable().onBluetoothQueue()
             .filter({ $0.uuid == characteristicUUID.uuid })
             .take(1)
             .asSingle()
@@ -376,8 +381,7 @@ extension Reactive where Base: CBPeripheral {
     
     private func writeValue(data: Data, for characteristic: CBCharacteristic, with info: PriorityInfo) -> Single<CBCharacteristic> {
         return RxCBPeripheralDelegateProxy.proxy(for: self.base)
-            .didWriteValueCharacteristicSubject
-            .onBluetoothQueue()
+            .didWriteValueCharacteristicSubject.onBluetoothQueue()
             .do(onSubscribe: { self.base.writeValue(data, for: characteristic, type: .withResponse) })
             .filter({ $0.0.uuid == characteristic.uuid })
             .take(1)
@@ -390,8 +394,7 @@ extension Reactive where Base: CBPeripheral {
     
     private func watchValue(for characteristic: CBCharacteristic, with info: PriorityInfo) -> Observable<CBCharacteristic> {
         return RxCBPeripheralDelegateProxy.proxy(for: self.base)
-            .didUpdateValueSubject
-            .onBluetoothQueue()
+            .didUpdateValueSubject.onBluetoothQueue()
             .filter({ $0.0.uuid == characteristic.uuid })
             .flatMap({ (tuple) -> Observable<CBCharacteristic> in
                 if let error = tuple.1 { return Observable.error(error) }
@@ -401,7 +404,9 @@ extension Reactive where Base: CBPeripheral {
     
     /// Watch a value subscribed to or otherwise read to
     func watchValue(for characteristicUUID: BluetoothCharacteristicUUID, with info: PriorityInfo) -> Observable<CBCharacteristic> {
-        return characteristic(for: characteristicUUID, with: info).asObservable().take(1)
+        return characteristic(for: characteristicUUID, with: info)
+            .asObservable()
+            .take(1)
             .flatMapFirst { self.base.rx.watchValue(for: $0, with: info) }
     }
     
@@ -436,8 +441,7 @@ extension Reactive where Base: CBPeripheral {
             }
             .filter({ tuple in
                 tuple.0.uuid == characteristicUUID.uuid
-            })
-            .onBluetoothQueue()
+            }).onBluetoothQueue()
             .flatMapLatest({ (tuple) -> Observable<CBCharacteristic> in
                 if let error = tuple.1 { return Observable.error(error) }
                 return Observable.just(tuple.0)
