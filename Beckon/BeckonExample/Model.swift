@@ -44,7 +44,7 @@ struct ExampleMetadata: DeviceMetadata {
 }
 
 class ExampleDescriptor: BeckonDescriptor {
-    var services: [BluetoothServiceUUID]? = [ExampleServices.main]
+    var services: [BluetoothServiceUUID] = [ExampleServices.main]
     
     static let lightOnCharacteristic = WriteOnlyBluetoothCharacteristicUUID<Bool>(uuid: ExampleCharacteristicIdentifiers.lightOn.uuid, service: ExampleServices.main)
 

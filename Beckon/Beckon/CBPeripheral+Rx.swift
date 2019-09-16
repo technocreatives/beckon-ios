@@ -199,8 +199,9 @@ class RxCBPeripheralDelegateProxy: DelegateProxy<CBPeripheral, CBPeripheralDeleg
         peripheral.services?.forEach {
             trace("[Proxy] peripheral(\(peripheral.identifier)) service: \($0)")
         }
-        _forwardToDelegate?.peripheral?(peripheral, didDiscoverServices: error)
+        
         DispatchQueue.main.async {
+            self._forwardToDelegate?.peripheral?(peripheral, didDiscoverServices: error)
             self.didDiscoverServicesSubject.onNext((peripheral.services ?? [], error))
         }
     }

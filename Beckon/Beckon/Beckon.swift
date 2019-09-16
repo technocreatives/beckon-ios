@@ -246,6 +246,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
     
     private let disposeBag = DisposeBag()
     
+    private var pairablePeripherals: [CBPeripheral] = []
     private var connectedDevices: [Device] = []
     private var pairedDevices: [Device] = []
     
@@ -490,7 +491,13 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
             var retrievedPeripherals = Set<CBPeripheral>()
             self.instance.retrievePeripherals(withIdentifiers: savedDevices.map { $0.uuid }).forEach { retrievedPeripherals.insert($0) }
             
-            return retrievedPeripherals
+            return retrievedPeripherals.filter { [unowned self] peripheral in
+                return (self.settingsStore.getSavedDevices()).map { $0.uuid }.contains(peripheral.identifier)
+            }
+        }
+        
+        let restoredPeripherals = self.restoredPeripheralsSubject.filter { [unowned self] peripheral in
+            return (self.settingsStore.getSavedDevices()).map { $0.uuid }.contains(peripheral.identifier)
         }
         
         self.instance.rx
@@ -499,13 +506,13 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
             .filter { state in return CBManagerState.poweredOn == state }
             .do(onNext: { _ in debug("[RxBt] State claims to be powered on") })
             .distinctUntilChanged()
-            .onBluetoothQueue()
+//            .onBluetoothQueue()
             .flatMapLatest { [unowned self] _ in return self.rescanSubject.asObservable() }
             .flatMapLatest { _ in
                 Observable<CBPeripheral>.merge(
                     newDevicesObservable,
                     Observable.from(shadowConnected()),
-                    self.restoredPeripheralsSubject,
+                    restoredPeripherals,
                     Observable.from(retrievedPeripherals())
                 )
                 // Not latest or it will only connect to the latest device it sees.
@@ -542,9 +549,11 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
                 }
             }
             .filter({ (peripheral) -> Bool in
-                !self.pairedDevices.contains(where: { (device) -> Bool in
+                let isNotPaired = !(self.pairedDevices.contains(where: { (device) -> Bool in
                     device.peripheral == peripheral
-                })
+                }))
+                trace("[X] (SETUP) isNotPaired: \(isNotPaired) - \(peripheral.identifier) '\(peripheral.name!)")
+                return isNotPaired
             })
             .do(onNext: { p in
                 trace("[X] (SETUP) hasConnected: \(p.identifier) '\(p.name!)")
@@ -619,21 +628,22 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
                 self.instance.rx.scanForPeripherals(
                     withServices: self.delegate.services.map { $0.uuid })
             }
-            .do(onNext: { trace("[X] (SEARCH) Found \($0.peripheral.name!), is it pairable?") })
+            .do(onNext: { trace("[X] (SEARCH) Found \($0.peripheral.name ?? "Unknown name"), is it pairable?") })
             .filter {
                 // Entry point for selecting only paired
                 self.delegate.isPairable(advertisementData: $0.data)
             }
-            .do(onNext: { print($0) }, onCompleted: { trace("[X] (SEARCH) Completed scanning") })
+            .do(onNext: { trace("[X] (SEARCH) Yes, it is pairable: \($0.peripheral.name ?? "Unknown name")") }, onCompleted: { trace("[X] (SEARCH) Completed scanning") })
             .filter { [unowned self] dp in
                 // This is probably kinda slow
                 return !(self.settingsStore.getSavedDevices()
                     .map { $0.uuid }
                     .contains(dp.peripheral.identifier))
             }
-            .flatMap({ [unowned self] discovered -> Observable<CBPeripheral> in
-                trace("[X] (SEARCH) connect is fired")
-                return self.instance.rx.connect(discovered.peripheral).asObservable() })
+            .flatMap({ (discovered : DiscoveredPeripheral) -> Observable<CBPeripheral> in
+                trace("[X] (SEARCH) And it's NOT a saved device: \(discovered.data.name ?? "Unknown name")")
+                return Observable.just(discovered.peripheral)
+            })
         
         let shadowConnected = self.instance.retrieveConnectedPeripherals(
                 withServices: self.delegate.services.map { $0.uuid })
@@ -649,41 +659,78 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
                     .contains(peripheral.identifier))
             }
         
-        return Observable<CBPeripheral>.merge(newDevicesObservable, Observable.from(shadowConnected)
+        return Observable<CBPeripheral>.merge(newDevicesObservable, Observable.from(shadowConnected))
+            .filter { !(self.pairablePeripherals.contains($0)) }
+            .do(onNext: { p in
+                self.pairablePeripherals.append(p)
+            })
             .flatMap { peripheral -> Observable<CBPeripheral> in
+                trace("[X] (SEARCH) \(peripheral.name!) state -> \(peripheral.state)")
+                
                 if peripheral.state == .connected {
-                    return Observable.just(peripheral)
+                    trace("[X] (SEARCH) \(peripheral.name!) is already connected")
+                    return self.instance.rx.hydrate(peripheral).asObservable()
                 } else if peripheral.state == .connecting {
                     return peripheral.rx.state
-                        .filter { pstate in
-                            pstate == CBPeripheralState.connected
-                        }
-                        .take(1)
-                        .flatMap { _ in Observable.just(peripheral) }
+                        .filter { pstate in pstate != CBPeripheralState.connecting }
+                        .flatMapLatest { pstate -> Observable<CBPeripheral> in
+                            if pstate != CBPeripheralState.connected {
+                                trace("[X] (SEARCH) \(peripheral.name!) went from connecting to faulty state -> \(pstate)")
+                                return Observable.empty()
+                            }
+                            
+                            trace("[X] (SEARCH) \(peripheral.name!) connecting -> CONNECTED")
+                            return self.instance.rx.hydrate(peripheral).asObservable()
+                    }
+                } else if peripheral.state == CBPeripheralState.disconnecting {
+                    trace("[X] (SEARCH) \(peripheral.name!) waiting for disconnect")
+                    return peripheral.rx.state
+                        .filter { pstate in pstate != CBPeripheralState.disconnected }
+                        .flatMap { _ -> Single<CBPeripheral> in
+                            trace("[X] (SEARCH) \(peripheral.name!) reconnect")
+                            return self.instance.rx.connect(peripheral)
+                        }.asObservable()
                 } else {
-                    trace("[X] (SEARCH) catch all connect is fired")
+                    trace("[X] (SEARCH) \(peripheral.name!) connect is fired")
                     return self.instance.rx.connect(peripheral).asObservable()
                 }
-            })
+            }
             .onBluetoothQueue()
-            .map { [unowned self] peripheral in
+            .map { [unowned self] peripheral -> Device? in
+                trace("[X] (SEARCH) Trying to make a Device: \(peripheral.name ?? "Unknown name")")
                 return Device(peripheral: peripheral, descriptor: self.delegate)
             }
             .flatMap({ device -> Observable<Device> in
-                return device.map {
-                    self.connectedDevices.append($0)
-                    return Observable.just($0)
+                return device.map { mapDevice in
+                    self.connectedDevices.append(mapDevice)
+                    self.pairablePeripherals.removeAll(where: { (peripheral) -> Bool in
+                        return mapDevice.deviceIdentifier == peripheral.identifier
+                    })
+                    return Observable.just(mapDevice)
                 } ?? Observable.empty()
             })
             .map {
                 return DiscoveredDevice(uuid: $0.deviceIdentifier)
             }
+            .do(onDispose: { [weak self] in
+                trace("[X] (SEARCH) Disposing search!")
+                self?.stopSearch()
+            })
     }
     
     /**
      Disconnect from all devices found while searching for new devices.
     */
     public func stopSearch() {
+        self.pairablePeripherals.forEach({ [unowned self] (peripheral) in
+            self.instance.rx.cancelPeripheralConnection(peripheral).subscribe(onSuccess: { (p) in
+                self.pairablePeripherals.removeAll(where: { (p2) -> Bool in
+                    return p2 == p
+                })
+            }).disposed(by: disposeBag)
+        })
+//        self.pairablePeripherals.removeAll()
+
         self.connectedDevices.forEach({ [unowned self] (device) in
             self.disconnect(device: device.deviceIdentifier)
         })
