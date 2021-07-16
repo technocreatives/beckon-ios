@@ -3,204 +3,122 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		6244D4BD8967977CD113FA11 /* Pods_BeckonExample.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D9156C8BF180C204074BF631 /* Pods_BeckonExample.framework */; };
-		FD29CDE52253A13900CD6414 /* Beckon.h in Headers */ = {isa = PBXBuildFile; fileRef = FD29CDE32253A13900CD6414 /* Beckon.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		FD29CDF22253A18A00CD6414 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD29CDF12253A18A00CD6414 /* AppDelegate.swift */; };
-		FD29CDF42253A18A00CD6414 /* ScanViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD29CDF32253A18A00CD6414 /* ScanViewController.swift */; };
-		FD29CDF72253A18A00CD6414 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = FD29CDF52253A18A00CD6414 /* Main.storyboard */; };
-		FD29CDF92253A18C00CD6414 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FD29CDF82253A18C00CD6414 /* Assets.xcassets */; };
-		FD29CDFC2253A18C00CD6414 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = FD29CDFA2253A18C00CD6414 /* LaunchScreen.storyboard */; };
-		FD29CE022253A1D700CD6414 /* Beckon.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD29CE012253A1D700CD6414 /* Beckon.swift */; };
-		FD29CE042253A21A00CD6414 /* CBManager+Rx.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD29CE032253A21A00CD6414 /* CBManager+Rx.swift */; };
-		FD29CE062253A22A00CD6414 /* CBPeripheral+Rx.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD29CE052253A22A00CD6414 /* CBPeripheral+Rx.swift */; };
-		FDAA44B42276E8DE00E694FA /* Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDAA44B32276E8DE00E694FA /* Model.swift */; };
-		FDAA44B6227701CB00E694FA /* DevicesViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDAA44B5227701CB00E694FA /* DevicesViewController.swift */; };
+		C60A57C126A1BB950027C211 /* Beckon.h in Headers */ = {isa = PBXBuildFile; fileRef = C60A57BF26A1BB950027C211 /* Beckon.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C6C2CA4726A1BC3600DB9BF4 /* Beckon.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C2CA4426A1BC3600DB9BF4 /* Beckon.swift */; };
+		C6C2CA4826A1BC3600DB9BF4 /* CBManager+Rx.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C2CA4526A1BC3600DB9BF4 /* CBManager+Rx.swift */; };
+		C6C2CA4926A1BC3600DB9BF4 /* CBPeripheral+Rx.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C2CA4626A1BC3600DB9BF4 /* CBPeripheral+Rx.swift */; };
+		C6C2CA5426A1BE0A00DB9BF4 /* RxCocoa in Frameworks */ = {isa = PBXBuildFile; productRef = C6C2CA5326A1BE0A00DB9BF4 /* RxCocoa */; };
+		C6C2CA5626A1BE0A00DB9BF4 /* RxSwift in Frameworks */ = {isa = PBXBuildFile; productRef = C6C2CA5526A1BE0A00DB9BF4 /* RxSwift */; };
+		C6C2CA5926A1BE1F00DB9BF4 /* RxFeedback in Frameworks */ = {isa = PBXBuildFile; productRef = C6C2CA5826A1BE1F00DB9BF4 /* RxFeedback */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		6ABED8077C6BD4F5C9C02F8D /* Pods-BeckonExample.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-BeckonExample.release.xcconfig"; path = "Target Support Files/Pods-BeckonExample/Pods-BeckonExample.release.xcconfig"; sourceTree = "<group>"; };
-		8722BF105C0DF61DAFE06592 /* Pods-BeckonExample.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-BeckonExample.debug.xcconfig"; path = "Target Support Files/Pods-BeckonExample/Pods-BeckonExample.debug.xcconfig"; sourceTree = "<group>"; };
-		D9156C8BF180C204074BF631 /* Pods_BeckonExample.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_BeckonExample.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		FD29CDE02253A13900CD6414 /* Beckon.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Beckon.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		FD29CDE32253A13900CD6414 /* Beckon.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Beckon.h; sourceTree = "<group>"; };
-		FD29CDE42253A13900CD6414 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		FD29CDEF2253A18A00CD6414 /* BeckonExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BeckonExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		FD29CDF12253A18A00CD6414 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		FD29CDF32253A18A00CD6414 /* ScanViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanViewController.swift; sourceTree = "<group>"; };
-		FD29CDF62253A18A00CD6414 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		FD29CDF82253A18C00CD6414 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		FD29CDFB2253A18C00CD6414 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		FD29CDFD2253A18C00CD6414 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		FD29CE012253A1D700CD6414 /* Beckon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Beckon.swift; sourceTree = "<group>"; };
-		FD29CE032253A21A00CD6414 /* CBManager+Rx.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CBManager+Rx.swift"; sourceTree = "<group>"; };
-		FD29CE052253A22A00CD6414 /* CBPeripheral+Rx.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CBPeripheral+Rx.swift"; sourceTree = "<group>"; };
-		FDAA44B32276E8DE00E694FA /* Model.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Model.swift; sourceTree = "<group>"; };
-		FDAA44B5227701CB00E694FA /* DevicesViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevicesViewController.swift; sourceTree = "<group>"; };
+		C60A57BC26A1BB950027C211 /* Beckon.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Beckon.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		C60A57BF26A1BB950027C211 /* Beckon.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Beckon.h; sourceTree = "<group>"; };
+		C60A57C026A1BB950027C211 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		C6C2CA4426A1BC3600DB9BF4 /* Beckon.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Beckon.swift; sourceTree = "<group>"; };
+		C6C2CA4526A1BC3600DB9BF4 /* CBManager+Rx.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "CBManager+Rx.swift"; sourceTree = "<group>"; };
+		C6C2CA4626A1BC3600DB9BF4 /* CBPeripheral+Rx.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "CBPeripheral+Rx.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		FD29CDDD2253A13900CD6414 /* Frameworks */ = {
+		C60A57B926A1BB950027C211 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		FD29CDEC2253A18A00CD6414 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				6244D4BD8967977CD113FA11 /* Pods_BeckonExample.framework in Frameworks */,
+				C6C2CA5626A1BE0A00DB9BF4 /* RxSwift in Frameworks */,
+				C6C2CA5926A1BE1F00DB9BF4 /* RxFeedback in Frameworks */,
+				C6C2CA5426A1BE0A00DB9BF4 /* RxCocoa in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		910A455264B26496475522FC /* Pods */ = {
+		C60A57B226A1BB950027C211 = {
 			isa = PBXGroup;
 			children = (
-				8722BF105C0DF61DAFE06592 /* Pods-BeckonExample.debug.xcconfig */,
-				6ABED8077C6BD4F5C9C02F8D /* Pods-BeckonExample.release.xcconfig */,
-			);
-			path = Pods;
-			sourceTree = "<group>";
-		};
-		F47E6078421929C5A5E219B5 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				D9156C8BF180C204074BF631 /* Pods_BeckonExample.framework */,
-			);
-			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		FD29CDD62253A13900CD6414 = {
-			isa = PBXGroup;
-			children = (
-				FD29CDE22253A13900CD6414 /* Beckon */,
-				FD29CDF02253A18A00CD6414 /* BeckonExample */,
-				FD29CDE12253A13900CD6414 /* Products */,
-				910A455264B26496475522FC /* Pods */,
-				F47E6078421929C5A5E219B5 /* Frameworks */,
+				C60A57BE26A1BB950027C211 /* Beckon */,
+				C60A57BD26A1BB950027C211 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		FD29CDE12253A13900CD6414 /* Products */ = {
+		C60A57BD26A1BB950027C211 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				FD29CDE02253A13900CD6414 /* Beckon.framework */,
-				FD29CDEF2253A18A00CD6414 /* BeckonExample.app */,
+				C60A57BC26A1BB950027C211 /* Beckon.framework */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		FD29CDE22253A13900CD6414 /* Beckon */ = {
+		C60A57BE26A1BB950027C211 /* Beckon */ = {
 			isa = PBXGroup;
 			children = (
-				FD29CDE32253A13900CD6414 /* Beckon.h */,
-				FD29CDE42253A13900CD6414 /* Info.plist */,
-				FD29CE012253A1D700CD6414 /* Beckon.swift */,
-				FD29CE032253A21A00CD6414 /* CBManager+Rx.swift */,
-				FD29CE052253A22A00CD6414 /* CBPeripheral+Rx.swift */,
+				C60A57BF26A1BB950027C211 /* Beckon.h */,
+				C6C2CA4426A1BC3600DB9BF4 /* Beckon.swift */,
+				C6C2CA4526A1BC3600DB9BF4 /* CBManager+Rx.swift */,
+				C6C2CA4626A1BC3600DB9BF4 /* CBPeripheral+Rx.swift */,
+				C60A57C026A1BB950027C211 /* Info.plist */,
 			);
 			path = Beckon;
-			sourceTree = "<group>";
-		};
-		FD29CDF02253A18A00CD6414 /* BeckonExample */ = {
-			isa = PBXGroup;
-			children = (
-				FD29CDF12253A18A00CD6414 /* AppDelegate.swift */,
-				FD29CDF32253A18A00CD6414 /* ScanViewController.swift */,
-				FDAA44B5227701CB00E694FA /* DevicesViewController.swift */,
-				FD29CDF52253A18A00CD6414 /* Main.storyboard */,
-				FD29CDF82253A18C00CD6414 /* Assets.xcassets */,
-				FD29CDFA2253A18C00CD6414 /* LaunchScreen.storyboard */,
-				FD29CDFD2253A18C00CD6414 /* Info.plist */,
-				FDAA44B32276E8DE00E694FA /* Model.swift */,
-			);
-			path = BeckonExample;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
-		FD29CDDB2253A13900CD6414 /* Headers */ = {
+		C60A57B726A1BB950027C211 /* Headers */ = {
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FD29CDE52253A13900CD6414 /* Beckon.h in Headers */,
+				C60A57C126A1BB950027C211 /* Beckon.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
-		FD29CDDF2253A13900CD6414 /* Beckon */ = {
+		C60A57BB26A1BB950027C211 /* Beckon */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = FD29CDE82253A13900CD6414 /* Build configuration list for PBXNativeTarget "Beckon" */;
+			buildConfigurationList = C60A57C426A1BB950027C211 /* Build configuration list for PBXNativeTarget "Beckon" */;
 			buildPhases = (
-				FD29CDDB2253A13900CD6414 /* Headers */,
-				FD29CDDC2253A13900CD6414 /* Sources */,
-				FD29CDDD2253A13900CD6414 /* Frameworks */,
-				FD29CDDE2253A13900CD6414 /* Resources */,
+				C60A57B726A1BB950027C211 /* Headers */,
+				C60A57B826A1BB950027C211 /* Sources */,
+				C60A57B926A1BB950027C211 /* Frameworks */,
+				C60A57BA26A1BB950027C211 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			name = Beckon;
+			packageProductDependencies = (
+				C6C2CA5326A1BE0A00DB9BF4 /* RxCocoa */,
+				C6C2CA5526A1BE0A00DB9BF4 /* RxSwift */,
+				C6C2CA5826A1BE1F00DB9BF4 /* RxFeedback */,
+			);
 			productName = Beckon;
-			productReference = FD29CDE02253A13900CD6414 /* Beckon.framework */;
+			productReference = C60A57BC26A1BB950027C211 /* Beckon.framework */;
 			productType = "com.apple.product-type.framework";
-		};
-		FD29CDEE2253A18A00CD6414 /* BeckonExample */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = FD29CDFE2253A18C00CD6414 /* Build configuration list for PBXNativeTarget "BeckonExample" */;
-			buildPhases = (
-				B20D49FDDCE9EC34CB4E6DCF /* [CP] Check Pods Manifest.lock */,
-				FD29CDEB2253A18A00CD6414 /* Sources */,
-				FD29CDEC2253A18A00CD6414 /* Frameworks */,
-				FD29CDED2253A18A00CD6414 /* Resources */,
-				40C1814D629F3C54693423CD /* [CP] Embed Pods Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = BeckonExample;
-			productName = BeckonExample;
-			productReference = FD29CDEF2253A18A00CD6414 /* BeckonExample.app */;
-			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		FD29CDD72253A13900CD6414 /* Project object */ = {
+		C60A57B326A1BB950027C211 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastSwiftUpdateCheck = 1010;
-				LastUpgradeCheck = 1010;
-				ORGANIZATIONNAME = "The Techno Creatives";
+				LastUpgradeCheck = 1250;
 				TargetAttributes = {
-					FD29CDDF2253A13900CD6414 = {
-						CreatedOnToolsVersion = 10.1;
-						LastSwiftMigration = 1010;
-					};
-					FD29CDEE2253A18A00CD6414 = {
-						CreatedOnToolsVersion = 10.1;
-						SystemCapabilities = {
-							com.apple.BackgroundModes = {
-								enabled = 1;
-							};
-						};
+					C60A57BB26A1BB950027C211 = {
+						CreatedOnToolsVersion = 12.5.1;
+						LastSwiftMigration = 1250;
 					};
 				};
 			};
-			buildConfigurationList = FD29CDDA2253A13900CD6414 /* Build configuration list for PBXProject "Beckon" */;
+			buildConfigurationList = C60A57B626A1BB950027C211 /* Build configuration list for PBXProject "Beckon" */;
 			compatibilityVersion = "Xcode 9.3";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -208,137 +126,45 @@
 				en,
 				Base,
 			);
-			mainGroup = FD29CDD62253A13900CD6414;
-			productRefGroup = FD29CDE12253A13900CD6414 /* Products */;
+			mainGroup = C60A57B226A1BB950027C211;
+			packageReferences = (
+				C6C2CA5226A1BE0900DB9BF4 /* XCRemoteSwiftPackageReference "RxSwift" */,
+				C6C2CA5726A1BE1F00DB9BF4 /* XCRemoteSwiftPackageReference "RxFeedback" */,
+			);
+			productRefGroup = C60A57BD26A1BB950027C211 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				FD29CDDF2253A13900CD6414 /* Beckon */,
-				FD29CDEE2253A18A00CD6414 /* BeckonExample */,
+				C60A57BB26A1BB950027C211 /* Beckon */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		FD29CDDE2253A13900CD6414 /* Resources */ = {
+		C60A57BA26A1BB950027C211 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		FD29CDED2253A18A00CD6414 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				FD29CDFC2253A18C00CD6414 /* LaunchScreen.storyboard in Resources */,
-				FD29CDF92253A18C00CD6414 /* Assets.xcassets in Resources */,
-				FD29CDF72253A18A00CD6414 /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
-/* Begin PBXShellScriptBuildPhase section */
-		40C1814D629F3C54693423CD /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-BeckonExample/Pods-BeckonExample-frameworks.sh",
-				"${BUILT_PRODUCTS_DIR}/Beckon/Beckon.framework",
-				"${BUILT_PRODUCTS_DIR}/RxAtomic/RxAtomic.framework",
-				"${BUILT_PRODUCTS_DIR}/RxCocoa/RxCocoa.framework",
-				"${BUILT_PRODUCTS_DIR}/RxFeedback/RxFeedback.framework",
-				"${BUILT_PRODUCTS_DIR}/RxSwift/RxSwift.framework",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Beckon.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/RxAtomic.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/RxCocoa.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/RxFeedback.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/RxSwift.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-BeckonExample/Pods-BeckonExample-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		B20D49FDDCE9EC34CB4E6DCF /* [CP] Check Pods Manifest.lock */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
-			);
-			name = "[CP] Check Pods Manifest.lock";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-BeckonExample-checkManifestLockResult.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-/* End PBXShellScriptBuildPhase section */
-
 /* Begin PBXSourcesBuildPhase section */
-		FD29CDDC2253A13900CD6414 /* Sources */ = {
+		C60A57B826A1BB950027C211 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FD29CE062253A22A00CD6414 /* CBPeripheral+Rx.swift in Sources */,
-				FD29CE042253A21A00CD6414 /* CBManager+Rx.swift in Sources */,
-				FD29CE022253A1D700CD6414 /* Beckon.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		FD29CDEB2253A18A00CD6414 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				FDAA44B6227701CB00E694FA /* DevicesViewController.swift in Sources */,
-				FDAA44B42276E8DE00E694FA /* Model.swift in Sources */,
-				FD29CDF42253A18A00CD6414 /* ScanViewController.swift in Sources */,
-				FD29CDF22253A18A00CD6414 /* AppDelegate.swift in Sources */,
+				C6C2CA4926A1BC3600DB9BF4 /* CBPeripheral+Rx.swift in Sources */,
+				C6C2CA4826A1BC3600DB9BF4 /* CBManager+Rx.swift in Sources */,
+				C6C2CA4726A1BC3600DB9BF4 /* Beckon.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
-/* Begin PBXVariantGroup section */
-		FD29CDF52253A18A00CD6414 /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				FD29CDF62253A18A00CD6414 /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
-		FD29CDFA2253A18C00CD6414 /* LaunchScreen.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				FD29CDFB2253A18C00CD6414 /* Base */,
-			);
-			name = LaunchScreen.storyboard;
-			sourceTree = "<group>";
-		};
-/* End PBXVariantGroup section */
-
 /* Begin XCBuildConfiguration section */
-		FD29CDE62253A13900CD6414 /* Debug */ = {
+		C60A57C226A1BB950027C211 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -364,13 +190,13 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
@@ -390,7 +216,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -402,7 +228,7 @@
 			};
 			name = Debug;
 		};
-		FD29CDE72253A13900CD6414 /* Release */ = {
+		C60A57C326A1BB950027C211 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -428,13 +254,13 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
@@ -448,7 +274,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
@@ -460,11 +286,10 @@
 			};
 			name = Release;
 		};
-		FD29CDE92253A13900CD6414 /* Debug */ = {
+		C60A57C526A1BB950027C211 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = Q24GRV8ZA4;
@@ -473,6 +298,7 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				INFOPLIST_FILE = Beckon/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 13.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -481,17 +307,17 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.technocreatives.Beckon;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
-		FD29CDEA2253A13900CD6414 /* Release */ = {
+		C60A57C626A1BB950027C211 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = Q24GRV8ZA4;
@@ -500,6 +326,7 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				INFOPLIST_FILE = Beckon/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 13.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -508,45 +335,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.technocreatives.Beckon;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
-				SWIFT_VERSION = 4.2;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
-		FD29CDFF2253A18C00CD6414 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = 8722BF105C0DF61DAFE06592 /* Pods-BeckonExample.debug.xcconfig */;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = Q24GRV8ZA4;
-				INFOPLIST_FILE = BeckonExample/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.technocreatives.BeckonExample;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 4.2;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		FD29CE002253A18C00CD6414 /* Release */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = 6ABED8077C6BD4F5C9C02F8D /* Pods-BeckonExample.release.xcconfig */;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = Q24GRV8ZA4;
-				INFOPLIST_FILE = BeckonExample/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.technocreatives.BeckonExample;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 4.2;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -554,34 +344,62 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		FD29CDDA2253A13900CD6414 /* Build configuration list for PBXProject "Beckon" */ = {
+		C60A57B626A1BB950027C211 /* Build configuration list for PBXProject "Beckon" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				FD29CDE62253A13900CD6414 /* Debug */,
-				FD29CDE72253A13900CD6414 /* Release */,
+				C60A57C226A1BB950027C211 /* Debug */,
+				C60A57C326A1BB950027C211 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		FD29CDE82253A13900CD6414 /* Build configuration list for PBXNativeTarget "Beckon" */ = {
+		C60A57C426A1BB950027C211 /* Build configuration list for PBXNativeTarget "Beckon" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				FD29CDE92253A13900CD6414 /* Debug */,
-				FD29CDEA2253A13900CD6414 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		FD29CDFE2253A18C00CD6414 /* Build configuration list for PBXNativeTarget "BeckonExample" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				FD29CDFF2253A18C00CD6414 /* Debug */,
-				FD29CE002253A18C00CD6414 /* Release */,
+				C60A57C526A1BB950027C211 /* Debug */,
+				C60A57C626A1BB950027C211 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		C6C2CA5226A1BE0900DB9BF4 /* XCRemoteSwiftPackageReference "RxSwift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ReactiveX/RxSwift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 6.2.0;
+			};
+		};
+		C6C2CA5726A1BE1F00DB9BF4 /* XCRemoteSwiftPackageReference "RxFeedback" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/NoTests/RxFeedback.swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C6C2CA5326A1BE0A00DB9BF4 /* RxCocoa */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C6C2CA5226A1BE0900DB9BF4 /* XCRemoteSwiftPackageReference "RxSwift" */;
+			productName = RxCocoa;
+		};
+		C6C2CA5526A1BE0A00DB9BF4 /* RxSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C6C2CA5226A1BE0900DB9BF4 /* XCRemoteSwiftPackageReference "RxSwift" */;
+			productName = RxSwift;
+		};
+		C6C2CA5826A1BE1F00DB9BF4 /* RxFeedback */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C6C2CA5726A1BE1F00DB9BF4 /* XCRemoteSwiftPackageReference "RxFeedback" */;
+			productName = RxFeedback;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = FD29CDD72253A13900CD6414 /* Project object */;
+	rootObject = C60A57B326A1BB950027C211 /* Project object */;
 }

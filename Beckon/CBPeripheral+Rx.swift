@@ -2,9 +2,6 @@
 //  CBPeripheral+Rx.swift
 //  Beckon
 //
-//  Created by Ville Petersson on 2019-04-02.
-//  Copyright © 2019 The Techno Creatives. All rights reserved.
-//
 
 import UIKit
 import CoreBluetooth
@@ -18,14 +15,14 @@ extension CBPeripheral: HasDelegate {
 struct PriorityInfo {
     let tag: String
     let priority: Operation.QueuePriority
-    let timeout: Double
+    let timeoutMs: Int
     let retries: Int
     let maxInstances: Int?
     
-    init(tag: String, priority: Operation.QueuePriority, timeout: Double = 0.5, retries: Int = 0, maxInstances: Int? = nil) {
+    init(tag: String, priority: Operation.QueuePriority, timeout: Int = 500, retries: Int = 0, maxInstances: Int? = nil) {
         self.tag = tag
         self.priority = priority
-        self.timeout = timeout
+        self.timeoutMs = timeout
         self.retries = retries
         self.maxInstances = maxInstances
     }
@@ -69,7 +66,7 @@ class BluetoothAction: Operation {
             print("ACTION: \(self.info.tag)")
             self.action()
         })
-            .timeout(self.info.timeout, scheduler: ConcurrentMainScheduler.instance)
+        .timeout(.milliseconds(self.info.timeoutMs), scheduler: ConcurrentMainScheduler.instance)
             .retry(self.info.retries)
             .subscribe(onCompleted: { [weak self] in
                 self?.state = .finished
@@ -264,7 +261,7 @@ extension Reactive where Base: CBPeripheral {
     
     public var state: Observable<CBPeripheralState> {
         return base.rx.observe(CBPeripheralState.self, "state")
-            .observeOn(MainScheduler.instance)
+            .observe(on: MainScheduler.instance)
             .flatMapLatest { (state: CBPeripheralState?) -> Observable<CBPeripheralState> in
                 guard let state = state else {
                     return Observable.empty()

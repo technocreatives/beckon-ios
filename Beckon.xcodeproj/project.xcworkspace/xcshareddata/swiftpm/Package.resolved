@@ -1,0 +1,25 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "RxFeedback",
+        "repositoryURL": "https://github.com/NoTests/RxFeedback.swift",
+        "state": {
+          "branch": null,
+          "revision": "aa8384081a14af8fb389245fce2eba5776a96d0b",
+          "version": "4.0.0"
+        }
+      },
+      {
+        "package": "RxSwift",
+        "repositoryURL": "https://github.com/ReactiveX/RxSwift",
+        "state": {
+          "branch": null,
+          "revision": "7c17a6ccca06b5c107cfa4284e634562ddaf5951",
+          "version": "6.2.0"
+        }
+      }
+    ]
+  },
+  "version": 1
+}
