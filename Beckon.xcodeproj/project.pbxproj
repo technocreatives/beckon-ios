@@ -23,6 +23,7 @@
 		C6C2CA4426A1BC3600DB9BF4 /* Beckon.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Beckon.swift; sourceTree = "<group>"; };
 		C6C2CA4526A1BC3600DB9BF4 /* CBManager+Rx.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "CBManager+Rx.swift"; sourceTree = "<group>"; };
 		C6C2CA4626A1BC3600DB9BF4 /* CBPeripheral+Rx.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "CBPeripheral+Rx.swift"; sourceTree = "<group>"; };
+		C6C2CA7A26A1C8D100DB9BF4 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -42,6 +43,7 @@
 		C60A57B226A1BB950027C211 = {
 			isa = PBXGroup;
 			children = (
+				C6C2CA7A26A1C8D100DB9BF4 /* Package.swift */,
 				C60A57BE26A1BB950027C211 /* Beckon */,
 				C60A57BD26A1BB950027C211 /* Products */,
 			);
