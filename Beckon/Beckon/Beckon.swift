@@ -2,11 +2,9 @@
 //  Beckon.swift
 //  Beckon
 //
-//  Created by Ville Petersson on 2019-04-02.
-//  Copyright © 2019 The Techno Creatives. All rights reserved.
-//
 
 import Foundation
+import UIKit
 
 import CoreBluetooth
 import RxSwift
@@ -433,8 +431,8 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
         self.instance.rx
             .state
             .filter { state in return CBManagerState.poweredOff == state }
-            .observeOn(MainScheduler.instance)
-            .subscribeOn(MainScheduler.instance)
+            .observe(on: MainScheduler.instance)
+            .subscribe(on: MainScheduler.instance)
             .subscribe(onNext: { [unowned self] _ in
                 self.connectedDevices.forEach({ [unowned self] (device) in
                     _ = self.instance.rx.cancelPeripheralConnection(device.peripheral)
@@ -577,10 +575,13 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
             }).disposed(by: disposeBag)
         
         // Clean up when losing connection
-        self.devicesSubject.flatMapLatest { devices in
-            Observable.from(devices)
+        self.devicesSubject
+            // TODO: this might not be good.
+            .asInfallible(onErrorJustReturn: [])
+            .flatMapLatest { (devices: [Device]) in
+                Observable.from(devices)
             }
-            .flatMap { device in
+            .flatMap { (device: Device) in
                 device.peripheral.rx.state.map { return (device, $0) }
             }
             .filter { _, state in state == CBPeripheralState.disconnected }
@@ -588,7 +589,8 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
                 return Observable.just(device)
             }
             .filter { $0.peripheral.state == .disconnected }
-            .delay(1.0, scheduler: ConcurrentMainScheduler.instance)
+            // TODO: this no longer compiles.
+//            .delay(1.0, scheduler: ConcurrentMainScheduler.instance)
             .map { [unowned self] device in
                 // NOTE: Side effects
                 self.disconnect(device: device.deviceIdentifier)
@@ -820,9 +822,9 @@ private class BeckonInternalDevice<State>: NSObject, Disposable where State: Bec
             initialState: State.defaultState,
             reduce: { [unowned self] in self.reducer(characteristicID: $1, oldState: $0) },
             scheduler: ConcurrentMainScheduler.instance,
-            scheduledFeedback: RxFeedback.bind { [unowned self] state in
+            feedback: RxFeedback.bind { [unowned self] state in
                 trace("[RxBt] (InternalDevice) State feedback binding triggered")
-                let bindings = Bindings(subscriptions: [Disposable](), mutations: self.subscriptions())
+                let bindings = Bindings(subscriptions: [Disposable](), events: self.subscriptions())
                 self.bindings = bindings
                 return bindings
             }
@@ -1063,7 +1065,7 @@ public struct BeckonNoSuchDeviceError: Error {}
 /**
  Describes your bluetooth device.
  */
-public protocol BeckonDescriptor: class {
+public protocol BeckonDescriptor: AnyObject {
     var services: [BluetoothServiceUUID] { get }
     var characteristics: [BluetoothCharacteristicUUID] { get }
     func isPairable(advertisementData: AdvertisementData) -> Bool
@@ -1089,9 +1091,9 @@ let observeQueue = MainScheduler.instance //SerialDispatchQueueScheduler.init(in
 let subscribeQueue = ConcurrentMainScheduler.instance //SerialDispatchQueueScheduler.init(internalSerialQueueName: "sub")
 
 extension ObservableType {
-    public func onBluetoothQueue() -> Observable<E> {
+    public func onBluetoothQueue() -> Observable<Element> {
         return self.map { $0 }
-//            .observeOn(observeQueue)
+//            .observe(on: observeQueue)
 //            .subscribeOn(subscribeQueue)
     }
 }

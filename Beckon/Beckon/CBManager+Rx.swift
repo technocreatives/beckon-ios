@@ -2,9 +2,6 @@
 //  CBManager+Rx.swift
 //  Beckon
 //
-//  Created by Ville Petersson on 2019-04-02.
-//  Copyright © 2019 The Techno Creatives. All rights reserved.
-//
 
 import UIKit
 import CoreBluetooth
@@ -330,6 +327,7 @@ fileprivate func internalHydrate(_ peripheral: CBPeripheral) -> Single<CBPeriphe
                 .toArray()
                 .filter { $0.count == services.count }
                 .map { _ in peripheral }
+                .asObservable()
                 .asSingle()
         }
         .do(onSuccess: { peripheral in
