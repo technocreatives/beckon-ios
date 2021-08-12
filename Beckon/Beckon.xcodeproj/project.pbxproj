@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		6244D4BD8967977CD113FA11 /* Pods_BeckonExample.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D9156C8BF180C204074BF631 /* Pods_BeckonExample.framework */; };
+		B73DAEAA438686B93E4B3EA4 /* Pods_Beckon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A7F1D84EDA2E244C822DC553 /* Pods_Beckon.framework */; };
 		FD29CDE52253A13900CD6414 /* Beckon.h in Headers */ = {isa = PBXBuildFile; fileRef = FD29CDE32253A13900CD6414 /* Beckon.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		FD29CDF22253A18A00CD6414 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD29CDF12253A18A00CD6414 /* AppDelegate.swift */; };
 		FD29CDF42253A18A00CD6414 /* ScanViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD29CDF32253A18A00CD6414 /* ScanViewController.swift */; };
@@ -24,6 +25,9 @@
 /* Begin PBXFileReference section */
 		6ABED8077C6BD4F5C9C02F8D /* Pods-BeckonExample.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-BeckonExample.release.xcconfig"; path = "Target Support Files/Pods-BeckonExample/Pods-BeckonExample.release.xcconfig"; sourceTree = "<group>"; };
 		8722BF105C0DF61DAFE06592 /* Pods-BeckonExample.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-BeckonExample.debug.xcconfig"; path = "Target Support Files/Pods-BeckonExample/Pods-BeckonExample.debug.xcconfig"; sourceTree = "<group>"; };
+		919D39BA0B24ABF7F059D655 /* Pods-Beckon.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Beckon.release.xcconfig"; path = "Target Support Files/Pods-Beckon/Pods-Beckon.release.xcconfig"; sourceTree = "<group>"; };
+		A7F1D84EDA2E244C822DC553 /* Pods_Beckon.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Beckon.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		B53799DA2947316208A31091 /* Pods-Beckon.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Beckon.debug.xcconfig"; path = "Target Support Files/Pods-Beckon/Pods-Beckon.debug.xcconfig"; sourceTree = "<group>"; };
 		D9156C8BF180C204074BF631 /* Pods_BeckonExample.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_BeckonExample.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		FD29CDE02253A13900CD6414 /* Beckon.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Beckon.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		FD29CDE32253A13900CD6414 /* Beckon.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Beckon.h; sourceTree = "<group>"; };
@@ -47,6 +51,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B73DAEAA438686B93E4B3EA4 /* Pods_Beckon.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -66,6 +71,8 @@
 			children = (
 				8722BF105C0DF61DAFE06592 /* Pods-BeckonExample.debug.xcconfig */,
 				6ABED8077C6BD4F5C9C02F8D /* Pods-BeckonExample.release.xcconfig */,
+				B53799DA2947316208A31091 /* Pods-Beckon.debug.xcconfig */,
+				919D39BA0B24ABF7F059D655 /* Pods-Beckon.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -74,6 +81,7 @@
 			isa = PBXGroup;
 			children = (
 				D9156C8BF180C204074BF631 /* Pods_BeckonExample.framework */,
+				A7F1D84EDA2E244C822DC553 /* Pods_Beckon.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -143,6 +151,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = FD29CDE82253A13900CD6414 /* Build configuration list for PBXNativeTarget "Beckon" */;
 			buildPhases = (
+				0E327127A7C1B0749AB9F080 /* [CP] Check Pods Manifest.lock */,
 				FD29CDDB2253A13900CD6414 /* Headers */,
 				FD29CDDC2253A13900CD6414 /* Sources */,
 				FD29CDDD2253A13900CD6414 /* Frameworks */,
@@ -240,7 +249,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		40C1814D629F3C54693423CD /* [CP] Embed Pods Frameworks */ = {
+		0E327127A7C1B0749AB9F080 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -248,22 +257,31 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-BeckonExample/Pods-BeckonExample-frameworks.sh",
-				"${BUILT_PRODUCTS_DIR}/Beckon/Beckon.framework",
-				"${BUILT_PRODUCTS_DIR}/RxAtomic/RxAtomic.framework",
-				"${BUILT_PRODUCTS_DIR}/RxCocoa/RxCocoa.framework",
-				"${BUILT_PRODUCTS_DIR}/RxFeedback/RxFeedback.framework",
-				"${BUILT_PRODUCTS_DIR}/RxSwift/RxSwift.framework",
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
 			);
-			name = "[CP] Embed Pods Frameworks";
+			name = "[CP] Check Pods Manifest.lock";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Beckon.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/RxAtomic.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/RxCocoa.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/RxFeedback.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/RxSwift.framework",
+				"$(DERIVED_FILE_DIR)/Pods-Beckon-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		40C1814D629F3C54693423CD /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-BeckonExample/Pods-BeckonExample-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-BeckonExample/Pods-BeckonExample-frameworks-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -462,6 +480,7 @@
 		};
 		FD29CDE92253A13900CD6414 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = B53799DA2947316208A31091 /* Pods-Beckon.debug.xcconfig */;
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "";
@@ -489,6 +508,7 @@
 		};
 		FD29CDEA2253A13900CD6414 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 919D39BA0B24ABF7F059D655 /* Pods-Beckon.release.xcconfig */;
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "";

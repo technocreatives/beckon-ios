@@ -1,0 +1,41 @@
+PODS:
+  - Beckon (0.1.0):
+    - RxFeedback
+    - RxSwift
+  - RxCocoa (6.2.0):
+    - RxRelay (= 6.2.0)
+    - RxSwift (= 6.2.0)
+  - RxFeedback (4.0.0):
+    - RxCocoa (~> 6.0)
+    - RxSwift (~> 6.0)
+  - RxRelay (6.2.0):
+    - RxSwift (= 6.2.0)
+  - RxSwift (6.2.0)
+
+DEPENDENCIES:
+  - Beckon (from `.`)
+  - RxCocoa (= 6.2.0)
+  - RxFeedback
+  - RxSwift (= 6.2.0)
+
+SPEC REPOS:
+  trunk:
+    - RxCocoa
+    - RxFeedback
+    - RxRelay
+    - RxSwift
+
+EXTERNAL SOURCES:
+  Beckon:
+    :path: "."
+
+SPEC CHECKSUMS:
+  Beckon: 4b4b9618b3a9c8fb06a30da1415a38c98b30fbf3
+  RxCocoa: 4baf94bb35f2c0ab31bc0cb9f1900155f646ba42
+  RxFeedback: c762a59b678ed8e30b5c84b6e4e03ad0341d2ecb
+  RxRelay: e72dbfd157807478401ef1982e1c61c945c94b2f
+  RxSwift: d356ab7bee873611322f134c5f9ef379fa183d8f
+
+PODFILE CHECKSUM: 13fb21f42f4ec3a2e251d85d1acddf2ed7a11ba4
+
+COCOAPODS: 1.10.1
