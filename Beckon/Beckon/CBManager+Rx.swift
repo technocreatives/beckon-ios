@@ -180,7 +180,7 @@ internal func debug(_ output: String) {
     print("debug [RxBT]: \(output)")
 }
 
-let traceOutput: Bool = false
+let traceOutput: Bool = true
 internal func trace(_ output: String) {
     if !traceOutput {
         return
