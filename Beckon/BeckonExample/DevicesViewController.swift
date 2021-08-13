@@ -39,7 +39,7 @@ class DevicesViewController: UIViewController, UITableViewDelegate, UITableViewD
         let metadata = ExampleMetadata(uuid: device.deviceIdentifier, firstConnected: Date())
         
         if case .connected(let state) = device.state {
-            let _ = BeckonInstance.beckon.write(value: !state.active, to: ExampleDescriptor.lightOnCharacteristic, on: metadata.uuid).subscribe()
+            let _ = BeckonInstance.shared.write(value: !state.active, to: ExampleDescriptor.lightOnCharacteristic, on: metadata.uuid).subscribe()
         }
         
         tableView.deselectRow(at: indexPath, animated: true)
@@ -57,7 +57,7 @@ class DevicesViewController: UIViewController, UITableViewDelegate, UITableViewD
         tableView.delegate = self
         tableView.dataSource = self        
         
-        BeckonInstance.beckon.devices
+        BeckonInstance.shared.devices
             .subscribe(onNext: { [weak self] (devices) in
                 self?.scannedDevices = devices
                 self?.tableView.reloadData()

@@ -33,7 +33,7 @@ class ScanViewController: UIViewController, UITableViewDelegate, UITableViewData
 
         let metadata = ExampleMetadata(uuid: device.uuid, firstConnected: Date())
         
-        BeckonInstance.beckon.settingsStore.saveDevice(metadata)
+        BeckonInstance.shared.settingsStore.saveDevice(metadata)
         
         self.dismiss(animated: true, completion: nil)
     }
@@ -50,7 +50,7 @@ class ScanViewController: UIViewController, UITableViewDelegate, UITableViewData
         tableView.delegate = self
         tableView.dataSource = self
         
-        BeckonInstance.beckon.search()
+        BeckonInstance.shared.search()
             .subscribe(onNext: { [weak self] (device) in
                 self?.scannedDevices.append(device)
                 self?.tableView.reloadData()

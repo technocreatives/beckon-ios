@@ -39,7 +39,6 @@ struct ExampleState: BeckonState {
 
 struct ExampleMetadata: DeviceMetadata {
     var uuid: UUID
-    
     var firstConnected: Date
 }
 
@@ -68,7 +67,5 @@ class ExampleDescriptor: BeckonDescriptor {
 }
 
 class BeckonInstance {
-    static let beckon = Beckon<ExampleState, ExampleMetadata>(appID: "beckonExample", descriptor: ExampleDescriptor())
-    
-    
+    static let shared = Beckon<ExampleState, ExampleMetadata>(appID: "beckonExample", descriptor: ExampleDescriptor())
 }
