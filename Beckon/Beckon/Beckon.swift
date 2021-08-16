@@ -339,7 +339,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
         self.delegate = descriptor
         
         self.devicesSubject.subscribe(onNext: {
-            trace("[RxBt] (devicesSubject) Current devices: \($0.map { $0.peripheral.name ?? "UNKNOWN" })")
+            trace("[RxBt] (devicesSubject) Current devices: \($0.map { $0.peripheral.name ?? "Unknown name" })")
         }, onError: {
             trace("[RxBt] (devicesSubject) Devices subject did error: \($0)")
         }, onCompleted: {
@@ -453,7 +453,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
             .flatMapLatest { _ in
                 self.instance.rx.scanForPeripherals(withServices: self.delegate.services.map { $0.uuid })
             }
-            .do(onNext: { trace("[X] (SETUP) Found \($0.peripheral.name!), is it pairable?") })
+            .do(onNext: { trace("[X] (SETUP) Found \($0.peripheral.name ?? "Unknown name"), is it pairable?") })
             .filter {
                 // Entry point for selecting only paired
                 self.delegate.isPairable(advertisementData: $0.data)
