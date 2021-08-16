@@ -49,12 +49,14 @@ class ScanViewController: UIViewController, UITableViewDelegate, UITableViewData
         // Do any additional setup after loading the view, typically from a nib.
         tableView.delegate = self
         tableView.dataSource = self
-        
+
+
         BeckonInstance.shared.search()
             .subscribe(onNext: { [weak self] (device) in
+                print("FOUND IT \n\n\n\nWOOO\n\n")
+                assert(Thread.isMainThread)
                 self?.scannedDevices.append(device)
                 self?.tableView.reloadData()
-                print("FOUND IT \n\n\n\nWOOO\n\n")
             }).disposed(by: disposeBag)
     }
 }
