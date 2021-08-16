@@ -30,7 +30,7 @@ EXTERNAL SOURCES:
     :path: "."
 
 SPEC CHECKSUMS:
-  Beckon: 4b4b9618b3a9c8fb06a30da1415a38c98b30fbf3
+  Beckon: 4af01258bbdab280fac3f7f3fb7339f0bcfd9a42
   RxCocoa: 4baf94bb35f2c0ab31bc0cb9f1900155f646ba42
   RxFeedback: c762a59b678ed8e30b5c84b6e4e03ad0341d2ecb
   RxRelay: e72dbfd157807478401ef1982e1c61c945c94b2f
