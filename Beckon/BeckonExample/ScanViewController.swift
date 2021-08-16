@@ -11,34 +11,7 @@ import Beckon
 import RxSwift
 import RxCocoa
 
-class ScanViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
-    
-    func numberOfSections(in tableView: UITableView) -> Int {
-        return 1
-    }
-    
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return scannedDevices.count
-    }
-
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "scannedCell", for: indexPath)
-        let device = self.scannedDevices[indexPath.row]
-        cell.textLabel?.text = "Device \(device.uuid)"
-        return cell
-    }
-    
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let device = self.scannedDevices[indexPath.row]
-
-        let metadata = ExampleMetadata(uuid: device.uuid, firstConnected: Date())
-        
-        BeckonInstance.shared.settingsStore.saveDevice(metadata)
-        
-        self.dismiss(animated: true, completion: nil)
-    }
-
-
+class ScanViewController: UIViewController {
     @IBOutlet weak var tableView: UITableView!
     let disposeBag = DisposeBag()
     
@@ -61,3 +34,31 @@ class ScanViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
 }
 
+extension ScanViewController: UITableViewDataSource {
+    func numberOfSections(in tableView: UITableView) -> Int {
+        return 1
+    }
+
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return scannedDevices.count
+    }
+
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "scannedCell", for: indexPath)
+        let device = self.scannedDevices[indexPath.row]
+        cell.textLabel?.text = "Device \(device.uuid)"
+        return cell
+    }
+}
+
+extension ScanViewController: UITableViewDelegate {
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let device = self.scannedDevices[indexPath.row]
+
+        let metadata = ExampleMetadata(uuid: device.uuid, firstConnected: Date())
+
+        BeckonInstance.shared.settingsStore.saveDevice(metadata)
+
+        self.dismiss(animated: true, completion: nil)
+    }
+}
