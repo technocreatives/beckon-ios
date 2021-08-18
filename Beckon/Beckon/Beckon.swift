@@ -228,14 +228,14 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
     }
     
     public let appID: String
-    private let instance: CBCentralManager
+    private let cbManager: CBCentralManager
     
     /**
      The CBCentralManager used by Beckon.
      
      Only use this if you know what you're doing, and it's not supported by Beckon otherwise.
     */
-    public var unsafeCentralManager: CBCentralManager { return instance }
+    public var unsafeCentralManager: CBCentralManager { return cbManager }
     
     /**
      The SettingsStore used to save which devices to connect to and what data to save between runs.
@@ -360,7 +360,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
             }).disposed(by: disposeBag)
         }
         
-        instance = Beckon.makeInstance(key: "\(appID).CentralManagerIdentifier")
+        cbManager = Beckon.makeInstance(key: "\(appID).CentralManagerIdentifier")
         settingsStore = SettingsStore<Metadata>(appID: appID)
         super.init()
         setup()
@@ -370,7 +370,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
      Observable of current CBManagerState
     */
     public var bluetoothState: Observable<CBManagerState> {
-        return self.instance.rx.state
+        return self.cbManager.rx.state
     }
     
     /**
@@ -381,7 +381,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
         
         let appState = UIApplication.shared.applicationState
         if appState == .active {
-            self.instance.cancelPeripheralConnection(device.peripheral)
+            self.cbManager.cancelPeripheralConnection(device.peripheral)
         }
         self.rescan()
         self.disconnectedDevice(device.peripheral)
@@ -400,7 +400,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
      */
     public func reset() {
         self.connectedDevices.forEach({ (device) in
-            _ = self.instance.rx.cancelPeripheralConnection(device.peripheral)
+            _ = self.cbManager.rx.cancelPeripheralConnection(device.peripheral)
         })
         self.connectedDevices.removeAll()
         self.pairedDevices.forEach({ (device) in
@@ -428,14 +428,14 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
             }).disposed(by: disposeBag)
         
         // Disconnect on bluetooth off
-        self.instance.rx
+        self.cbManager.rx
             .state
             .filter { state in return CBManagerState.poweredOff == state }
             .observe(on: MainScheduler.instance)
             .subscribe(on: MainScheduler.instance)
             .subscribe(onNext: { [unowned self] _ in
                 self.connectedDevices.forEach({ [unowned self] (device) in
-                    _ = self.instance.rx.cancelPeripheralConnection(device.peripheral)
+                    _ = self.cbManager.rx.cancelPeripheralConnection(device.peripheral)
                 })
                 self.connectedDevices.removeAll()
                 self.pairedDevices.forEach({ (device) in
@@ -446,12 +446,12 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
             }).disposed(by: disposeBag)
         
         // Main connection loop
-        let newDevicesObservable = self.instance.rx
+        let newDevicesObservable = self.cbManager.rx
             .state
             .filter { state in return (CBManagerState.poweredOn == state) }
             .flatMapLatest { [unowned self] _ in return self.rescanSubject.asObservable() }
             .flatMapLatest { _ in
-                self.instance.rx.scanForPeripherals(withServices: self.delegate.services.map { $0.uuid })
+                self.cbManager.rx.scanForPeripherals(withServices: self.delegate.services.map { $0.uuid })
             }
             .do(onNext: { trace("[X] (SETUP) Found \($0.peripheral.name ?? "Unknown name"), is it pairable?") })
             .filter {
@@ -469,7 +469,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
             }
         
         let shadowConnected = { () -> [CBPeripheral] in
-            self.instance.retrieveConnectedPeripherals(withServices: self.delegate.services.map { $0.uuid })
+            self.cbManager.retrieveConnectedPeripherals(withServices: self.delegate.services.map { $0.uuid })
                 .filter { peripheral in
                     self.delegate.isPairable(
                         advertisementData: AdvertisementData(
@@ -487,7 +487,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
             let savedDevices = self.settingsStore.getSavedDevices()
             
             var retrievedPeripherals = Set<CBPeripheral>()
-            self.instance.retrievePeripherals(withIdentifiers: savedDevices.map { $0.uuid }).forEach { retrievedPeripherals.insert($0) }
+            self.cbManager.retrievePeripherals(withIdentifiers: savedDevices.map { $0.uuid }).forEach { retrievedPeripherals.insert($0) }
             
             return retrievedPeripherals.filter { [unowned self] peripheral in
                 return (self.settingsStore.getSavedDevices()).map { $0.uuid }.contains(peripheral.identifier)
@@ -498,7 +498,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
             return (self.settingsStore.getSavedDevices()).map { $0.uuid }.contains(peripheral.identifier)
         }
         
-        self.instance.rx
+        self.cbManager.rx
             .state
             .do(onNext: { x in debug("[RxBt] Checking state: \(x)") })
             .filter { state in return CBManagerState.poweredOn == state }
@@ -519,7 +519,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
                 
                     if peripheral.state == .connected {
                         trace("[X] (SETUP) \(peripheral.name!) is already connected")
-                        return self.instance.rx.hydrate(peripheral).asObservable()
+                        return self.cbManager.rx.hydrate(peripheral).asObservable()
                     } else if peripheral.state == .connecting {
                         return peripheral.rx.state
                             .filter { pstate in pstate != CBPeripheralState.connecting }
@@ -530,7 +530,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
                                 }
 
                                 trace("[X] (SETUP) \(peripheral.name!) connecting -> CONNECTED")
-                                return self.instance.rx.hydrate(peripheral).asObservable()
+                                return self.cbManager.rx.hydrate(peripheral).asObservable()
                             }
                     } else if peripheral.state == CBPeripheralState.disconnecting {
                         trace("[X] (SETUP) \(peripheral.name!) waiting for disconnect")
@@ -538,11 +538,11 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
                             .filter { pstate in pstate != CBPeripheralState.disconnected }
                             .flatMap { _ -> Single<CBPeripheral> in
                                 trace("[X] (SETUP) \(peripheral.name!) reconnect")
-                                return self.instance.rx.connect(peripheral)
+                                return self.cbManager.rx.connect(peripheral)
                             }.asObservable()
                     } else {
                         trace("[X] (SETUP) \(peripheral.name!) connect is fired")
-                        return self.instance.rx.connect(peripheral).asObservable()
+                        return self.cbManager.rx.connect(peripheral).asObservable()
                     }
                 }
             }
@@ -623,11 +623,11 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
      using `Beckon.settingsStore.saveDevice(_)`.
     */
     public func search() -> Observable<DiscoveredDevice> {
-        let newDevicesObservable = self.instance.rx
+        let newDevicesObservable = self.cbManager.rx
             .state
             .filter { state in return (CBManagerState.poweredOn == state) }
             .flatMapLatest { _ in
-                self.instance.rx.scanForPeripherals(
+                self.cbManager.rx.scanForPeripherals(
                     withServices: self.delegate.services.map { $0.uuid })
             }
             .do(onNext: { trace("[X] (SEARCH) Found \($0.peripheral.name ?? "Unknown name"), is it pairable?") })
@@ -647,7 +647,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
                 return Observable.just(discovered.peripheral)
             })
         
-        let shadowConnected = self.instance.retrieveConnectedPeripherals(
+        let shadowConnected = self.cbManager.retrieveConnectedPeripherals(
                 withServices: self.delegate.services.map { $0.uuid })
             .filter { peripheral in
                 let data = AdvertisementData(
@@ -671,7 +671,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
                 
                 if peripheral.state == .connected {
                     trace("[X] (SEARCH) \(peripheral.name!) is already connected")
-                    return self.instance.rx.hydrate(peripheral).asObservable()
+                    return self.cbManager.rx.hydrate(peripheral).asObservable()
                 } else if peripheral.state == .connecting {
                     return peripheral.rx.state
                         .filter { pstate in pstate != CBPeripheralState.connecting }
@@ -682,7 +682,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
                             }
                             
                             trace("[X] (SEARCH) \(peripheral.name!) connecting -> CONNECTED")
-                            return self.instance.rx.hydrate(peripheral).asObservable()
+                            return self.cbManager.rx.hydrate(peripheral).asObservable()
                     }
                 } else if peripheral.state == CBPeripheralState.disconnecting {
                     trace("[X] (SEARCH) \(peripheral.name!) waiting for disconnect")
@@ -690,11 +690,11 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
                         .filter { pstate in pstate != CBPeripheralState.disconnected }
                         .flatMap { _ -> Single<CBPeripheral> in
                             trace("[X] (SEARCH) \(peripheral.name!) reconnect")
-                            return self.instance.rx.connect(peripheral)
+                            return self.cbManager.rx.connect(peripheral)
                         }.asObservable()
                 } else {
                     trace("[X] (SEARCH) \(peripheral.name!) connect is fired")
-                    return self.instance.rx.connect(peripheral).asObservable()
+                    return self.cbManager.rx.connect(peripheral).asObservable()
                 }
             }
             .onBluetoothQueue()
@@ -725,7 +725,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
     */
     public func stopSearch() {
         self.pairablePeripherals.forEach({ [unowned self] (peripheral) in
-            self.instance.rx.cancelPeripheralConnection(peripheral).subscribe(onSuccess: { (p) in
+            self.cbManager.rx.cancelPeripheralConnection(peripheral).subscribe(onSuccess: { (p) in
                 self.pairablePeripherals.removeAll(where: { (p2) -> Bool in
                     return p2 == p
                 })
