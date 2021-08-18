@@ -458,7 +458,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
                 // Entry point for selecting only paired
                 self.descriptor.isPairable(advertisementData: $0.data)
             }
-            .do(onNext: { trace("[X] (SETUP) onNext isPairable: \($0.peripheral.name!)") }, onCompleted: { trace("[X] (SETUP) Completed scanning") })
+            .do(onNext: { trace("[X] (SETUP) onNext isPairable: \($0.peripheral.name ?? "Unknown name")") }, onCompleted: { trace("[X] (SETUP) Completed scanning") })
             .filter { [unowned self] dp in
                 // This is probably kinda slow
                 return (self.settingsStore.getSavedDevices()).map { $0.uuid }.contains(dp.peripheral.identifier)
