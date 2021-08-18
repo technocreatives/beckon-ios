@@ -463,7 +463,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
                 // This is probably kinda slow
                 return (self.settingsStore.getSavedDevices()).map { $0.uuid }.contains(dp.peripheral.identifier)
             }
-            .do(onNext: { trace("[X] (SETUP) Pairable: \($0.peripheral.name!)") })
+            .do(onNext: { trace("[X] (SETUP) Pairable: \($0.peripheral.name ?? "Unknown name")") })
             .map { it -> CBPeripheral in
                 return it.peripheral
             }
@@ -515,33 +515,33 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
                 )
                 // Not latest or it will only connect to the latest device it sees.
                 .flatMap { peripheral -> Observable<CBPeripheral> in
-                    trace("[X] (SETUP) \(peripheral.name!) state -> \(peripheral.state)")
+                    trace("[X] (SETUP) \(peripheral.name ?? "Unknown name") state -> \(peripheral.state)")
                 
                     if peripheral.state == .connected {
-                        trace("[X] (SETUP) \(peripheral.name!) is already connected")
+                        trace("[X] (SETUP) \(peripheral.name  ?? "Unknown name") is already connected")
                         return self.cbManager.rx.hydrate(peripheral).asObservable()
                     } else if peripheral.state == .connecting {
                         return peripheral.rx.state
                             .filter { pstate in pstate != CBPeripheralState.connecting }
                             .flatMapLatest { pstate -> Observable<CBPeripheral> in
                                 if pstate != CBPeripheralState.connected {
-                                    trace("[X] (SETUP) \(peripheral.name!) went from connecting to faulty state -> \(pstate)")
+                                    trace("[X] (SETUP) \(peripheral.name  ?? "Unknown name") went from connecting to faulty state -> \(pstate)")
                                     return Observable.empty()
                                 }
 
-                                trace("[X] (SETUP) \(peripheral.name!) connecting -> CONNECTED")
+                                trace("[X] (SETUP) \(peripheral.name  ?? "Unknown name") connecting -> CONNECTED")
                                 return self.cbManager.rx.hydrate(peripheral).asObservable()
                             }
                     } else if peripheral.state == CBPeripheralState.disconnecting {
-                        trace("[X] (SETUP) \(peripheral.name!) waiting for disconnect")
+                        trace("[X] (SETUP) \(peripheral.name  ?? "Unknown name") waiting for disconnect")
                         return peripheral.rx.state
                             .filter { pstate in pstate != CBPeripheralState.disconnected }
                             .flatMap { _ -> Single<CBPeripheral> in
-                                trace("[X] (SETUP) \(peripheral.name!) reconnect")
+                                trace("[X] (SETUP) \(peripheral.name  ?? "Unknown name") reconnect")
                                 return self.cbManager.rx.connect(peripheral)
                             }.asObservable()
                     } else {
-                        trace("[X] (SETUP) \(peripheral.name!) connect is fired")
+                        trace("[X] (SETUP) \(peripheral.name ?? "Unknown name") connect is fired")
                         return self.cbManager.rx.connect(peripheral).asObservable()
                     }
                 }
@@ -550,25 +550,25 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
                 let isNotPaired = !(self.pairedDevices.contains(where: { (device) -> Bool in
                     device.peripheral == peripheral
                 }))
-                trace("[X] (SETUP) isNotPaired: \(isNotPaired) - \(peripheral.identifier) '\(peripheral.name!)")
+                trace("[X] (SETUP) isNotPaired: \(isNotPaired) - \(peripheral.identifier) '\(peripheral.name  ?? "Unknown name")")
                 return isNotPaired
             })
             .do(onNext: { p in
-                trace("[X] (SETUP) hasConnected: \(p.identifier) '\(p.name!)")
+                trace("[X] (SETUP) hasConnected: \(p.identifier) '\(p.name  ?? "Unknown name")")
             })
             .subscribe(onNext: { [weak self] peripheral in
                 guard let `self` = self else { return }
                 
-                trace("[X] (SETUP) Creating a device for peripheral: \(peripheral.name!)")
+                trace("[X] (SETUP) Creating a device for peripheral: \(peripheral.name  ?? "Unknown name")")
                 if let device = Device(peripheral: peripheral, descriptor: self.descriptor) {
                     self.pairedDevices.removeAll(where: { (pairedDevice) -> Bool in
                         let v = pairedDevice.peripheral.identifier == device.peripheral.identifier
                         if v {
-                            trace("[X] (SETUP) Removing to update paired device: \(pairedDevice.peripheral.identifier) '\(device.peripheral.name!)'")
+                            trace("[X] (SETUP) Removing to update paired device: \(pairedDevice.peripheral.identifier) '\(device.peripheral.name  ?? "Unknown name")'")
                         }
                         return v
                     })
-                    debug("[X] (SETUP) Added device \(peripheral.identifier) '\(peripheral.name!)'")
+                    debug("[X] (SETUP) Added device \(peripheral.identifier) '\(peripheral.name  ?? "Unknown name")'")
                     self.pairedDevices.append(device)
                     self.devicesSubject.onNext(self.pairedDevices)
                 }
@@ -667,33 +667,33 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
                 self.pairablePeripherals.append(p)
             })
             .flatMap { peripheral -> Observable<CBPeripheral> in
-                trace("[X] (SEARCH) \(peripheral.name!) state -> \(peripheral.state)")
+                trace("[X] (SEARCH) \(peripheral.name  ?? "Unknown name") state -> \(peripheral.state)")
                 
                 if peripheral.state == .connected {
-                    trace("[X] (SEARCH) \(peripheral.name!) is already connected")
+                    trace("[X] (SEARCH) \(peripheral.name  ?? "Unknown name") is already connected")
                     return self.cbManager.rx.hydrate(peripheral).asObservable()
                 } else if peripheral.state == .connecting {
                     return peripheral.rx.state
                         .filter { pstate in pstate != CBPeripheralState.connecting }
                         .flatMapLatest { pstate -> Observable<CBPeripheral> in
                             if pstate != CBPeripheralState.connected {
-                                trace("[X] (SEARCH) \(peripheral.name!) went from connecting to faulty state -> \(pstate)")
+                                trace("[X] (SEARCH) \(peripheral.name  ?? "Unknown name") went from connecting to faulty state -> \(pstate)")
                                 return Observable.empty()
                             }
                             
-                            trace("[X] (SEARCH) \(peripheral.name!) connecting -> CONNECTED")
+                            trace("[X] (SEARCH) \(peripheral.name  ?? "Unknown name") connecting -> CONNECTED")
                             return self.cbManager.rx.hydrate(peripheral).asObservable()
                     }
                 } else if peripheral.state == CBPeripheralState.disconnecting {
-                    trace("[X] (SEARCH) \(peripheral.name!) waiting for disconnect")
+                    trace("[X] (SEARCH) \(peripheral.name  ?? "Unknown name") waiting for disconnect")
                     return peripheral.rx.state
                         .filter { pstate in pstate != CBPeripheralState.disconnected }
                         .flatMap { _ -> Single<CBPeripheral> in
-                            trace("[X] (SEARCH) \(peripheral.name!) reconnect")
+                            trace("[X] (SEARCH) \(peripheral.name  ?? "Unknown name") reconnect")
                             return self.cbManager.rx.connect(peripheral)
                         }.asObservable()
                 } else {
-                    trace("[X] (SEARCH) \(peripheral.name!) connect is fired")
+                    trace("[X] (SEARCH) \(peripheral.name  ?? "Unknown name") connect is fired")
                     return self.cbManager.rx.connect(peripheral).asObservable()
                 }
             }
@@ -777,7 +777,7 @@ private class BeckonInternalDevice<State>: NSObject, Disposable where State: Bec
     private let disposeBag = DisposeBag()
     
     required public init?(peripheral: CBPeripheral, descriptor: BeckonDescriptor) {
-        trace("[RxBt] (InternalDevice) Init '\(peripheral.name!)'")
+        trace("[RxBt] (InternalDevice) Init '\(peripheral.name  ?? "Unknown name")'")
         self.peripheral = peripheral
         
         let characteristicIDs = descriptor.characteristics
@@ -844,9 +844,9 @@ private class BeckonInternalDevice<State>: NSObject, Disposable where State: Bec
             let (_, (id, _)) = arg
             let uuidString = id.uuid.uuidString
             
-            trace("[RxBt] (InternalDevice) \(self.peripheral.name!) Checking read and notify traits")
+            trace("[RxBt] (InternalDevice) \(self.peripheral.name  ?? "Unknown name") Checking read and notify traits")
             if id.traits.contains(.notify) {
-                trace("[RxBt] (InternalDevice) \(self.peripheral.name!) Notify required")
+                trace("[RxBt] (InternalDevice) \(self.peripheral.name  ?? "Unknown name") Notify required")
                 _ = peripheral.rx.setNotifyValue(
                     true,
                     for: id,
@@ -857,7 +857,7 @@ private class BeckonInternalDevice<State>: NSObject, Disposable where State: Bec
                 ).subscribe()
             }
             if id.traits.contains(.read) {
-                trace("[RxBt] (InternalDevice) \(self.peripheral.name!) Read required")
+                trace("[RxBt] (InternalDevice) \(self.peripheral.name  ?? "Unknown name") Read required")
                 _ = peripheral.rx.readValue(
                     for: id,
                     with: PriorityInfo(
@@ -867,7 +867,7 @@ private class BeckonInternalDevice<State>: NSObject, Disposable where State: Bec
                 ).subscribe()
             }
             
-            trace("[RxBt] (InternalDevice) \(self.peripheral.name!) Requesting to watch value \(uuidString)")
+            trace("[RxBt] (InternalDevice) \(self.peripheral.name  ?? "Unknown name") Requesting to watch value \(uuidString)")
             return self.peripheral.rx.watchValue(
                 for: id,
                 with: PriorityInfo(

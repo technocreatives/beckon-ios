@@ -314,7 +314,7 @@ fileprivate func internalHydrate(_ peripheral: CBPeripheral) -> Single<CBPeriphe
             let services = tuple.0
             let peripheral = tuple.1
             
-            trace("[Manager] connect has received new discovered services for peripheral: \(peripheral.name!)")
+            trace("[Manager] connect has received new discovered services for peripheral: \(peripheral.name  ?? "Unknown name")")
             return Observable.from(services).map { service -> Single<[CBCharacteristic]> in
                     if let characteristics = service.characteristics, characteristics.count > 0 {
                         trace("[Manager] Already hydrated characteristics")
@@ -331,7 +331,7 @@ fileprivate func internalHydrate(_ peripheral: CBPeripheral) -> Single<CBPeriphe
                 .asSingle()
         }
         .do(onSuccess: { peripheral in
-            trace("[Manager] hydrate has received discovered characteristics for peripheral: \(peripheral.name!)")
+            trace("[Manager] hydrate has received discovered characteristics for peripheral: \(peripheral.name  ?? "Unknown name")")
         })
 }
 
@@ -357,7 +357,7 @@ extension Reactive where Base: CBCentralManager {
 //                    .onBluetoothQueue()
                     .do(
                         onNext: { peripheral in
-                            trace("[Manager] connect flat map received new peripheral: \(peripheral.name!)")
+                            trace("[Manager] connect flat map received new peripheral: \(peripheral.name  ?? "Unknown name")")
                         }, onSubscribe: {
                             trace("[Manager] connect request to real CBCentralManager starting")
                             DispatchQueue.main.async {
@@ -369,13 +369,13 @@ extension Reactive where Base: CBCentralManager {
                     .take(1)
                     .asSingle()
                     .do(onSuccess: { peripheral in
-                        trace("[Manager] connect has a peripheral: \(peripheral.name!), state: \(peripheral.state)")
+                        trace("[Manager] connect has a peripheral: \(peripheral.name  ?? "Unknown name"), state: \(peripheral.state)")
                     })
             }
             // Start the part where we parallelise getting the characteristics from the services
             .flatMap({ x -> Single<CBPeripheral> in internalHydrate(x) })
             .do(onSuccess: { peripheral in
-                trace("[Manager] connect has received discovered characteristics for peripheral: \(peripheral.name!)")
+                trace("[Manager] connect has received discovered characteristics for peripheral: \(peripheral.name  ?? "Unknown name")")
             }, onError: { err in
                 trace("[Manager] connect resulted in error \(err)")
             })
