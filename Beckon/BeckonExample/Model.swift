@@ -66,6 +66,16 @@ class ExampleDescriptor: BeckonDescriptor {
     }
 }
 
+class AllDevicesDescriptor: BeckonDescriptor {
+    var services: [BluetoothServiceUUID] = []
+    
+    var characteristics: [BluetoothCharacteristicUUID] = []
+    
+    func isPairable(advertisementData: AdvertisementData) -> Bool {
+        return true
+    }
+}
+
 class BeckonInstance {
-    static let shared = Beckon<ExampleState, ExampleMetadata>(appID: "beckonExample", descriptor: ExampleDescriptor())
+    static let shared = Beckon<ExampleState, ExampleMetadata>(appID: "beckonExample", descriptor: AllDevicesDescriptor())
 }
