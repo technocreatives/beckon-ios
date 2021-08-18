@@ -248,7 +248,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
     private var connectedDevices: [Device] = []
     private var pairedDevices: [Device] = []
     
-    public var delegate: BeckonDescriptor
+    public var descriptor: BeckonDescriptor
     
     fileprivate let restoredPeripheralsSubject = PublishSubject<CBPeripheral>()
     
@@ -336,7 +336,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
     */
     public init(appID: String = Bundle.main.bundleIdentifier!, descriptor: BeckonDescriptor) {
         self.appID = appID
-        self.delegate = descriptor
+        self.descriptor = descriptor
         
         self.devicesSubject.subscribe(onNext: {
             trace("[RxBt] (devicesSubject) Current devices: \($0.map { $0.peripheral.name ?? "Unknown name" })")
@@ -451,12 +451,12 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
             .filter { state in return (CBManagerState.poweredOn == state) }
             .flatMapLatest { [unowned self] _ in return self.rescanSubject.asObservable() }
             .flatMapLatest { _ in
-                self.cbManager.rx.scanForPeripherals(withServices: self.delegate.services.map { $0.uuid })
+                self.cbManager.rx.scanForPeripherals(withServices: self.descriptor.services.map { $0.uuid })
             }
             .do(onNext: { trace("[X] (SETUP) Found \($0.peripheral.name ?? "Unknown name"), is it pairable?") })
             .filter {
                 // Entry point for selecting only paired
-                self.delegate.isPairable(advertisementData: $0.data)
+                self.descriptor.isPairable(advertisementData: $0.data)
             }
             .do(onNext: { trace("[X] (SETUP) onNext isPairable: \($0.peripheral.name!)") }, onCompleted: { trace("[X] (SETUP) Completed scanning") })
             .filter { [unowned self] dp in
@@ -469,9 +469,9 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
             }
         
         let shadowConnected = { () -> [CBPeripheral] in
-            self.cbManager.retrieveConnectedPeripherals(withServices: self.delegate.services.map { $0.uuid })
+            self.cbManager.retrieveConnectedPeripherals(withServices: self.descriptor.services.map { $0.uuid })
                 .filter { peripheral in
-                    self.delegate.isPairable(
+                    self.descriptor.isPairable(
                         advertisementData: AdvertisementData(
                             services: peripheral.services?.map { serv in serv.uuid } ?? [],
                             name: peripheral.name ?? ""
@@ -560,7 +560,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
                 guard let `self` = self else { return }
                 
                 trace("[X] (SETUP) Creating a device for peripheral: \(peripheral.name!)")
-                if let device = Device(peripheral: peripheral, descriptor: self.delegate) {
+                if let device = Device(peripheral: peripheral, descriptor: self.descriptor) {
                     self.pairedDevices.removeAll(where: { (pairedDevice) -> Bool in
                         let v = pairedDevice.peripheral.identifier == device.peripheral.identifier
                         if v {
@@ -628,12 +628,12 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
             .filter { state in return (CBManagerState.poweredOn == state) }
             .flatMapLatest { _ in
                 self.cbManager.rx.scanForPeripherals(
-                    withServices: self.delegate.services.map { $0.uuid })
+                    withServices: self.descriptor.services.map { $0.uuid })
             }
             .do(onNext: { trace("[X] (SEARCH) Found \($0.peripheral.name ?? "Unknown name"), is it pairable?") })
             .filter {
                 // Entry point for selecting only paired
-                self.delegate.isPairable(advertisementData: $0.data)
+                self.descriptor.isPairable(advertisementData: $0.data)
             }
             .do(onNext: { trace("[X] (SEARCH) Yes, it is pairable: \($0.peripheral.name ?? "Unknown name")") }, onCompleted: { trace("[X] (SEARCH) Completed scanning") })
             .filter { [unowned self] dp in
@@ -648,12 +648,12 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
             })
         
         let shadowConnected = self.cbManager.retrieveConnectedPeripherals(
-                withServices: self.delegate.services.map { $0.uuid })
+                withServices: self.descriptor.services.map { $0.uuid })
             .filter { peripheral in
                 let data = AdvertisementData(
                     services: peripheral.services?.map { serv in serv.uuid } ?? [],
                     name: peripheral.name ?? "")
-                return self.delegate.isPairable(advertisementData: data)
+                return self.descriptor.isPairable(advertisementData: data)
             }
             .filter { [unowned self] peripheral in
                 return !(self.settingsStore.getSavedDevices()
@@ -700,7 +700,7 @@ public class Beckon<State, Metadata>: NSObject where State: BeckonState, Metadat
             .onBluetoothQueue()
             .map { [unowned self] peripheral -> Device? in
                 trace("[X] (SEARCH) Trying to make a Device: \(peripheral.name ?? "Unknown name")")
-                return Device(peripheral: peripheral, descriptor: self.delegate)
+                return Device(peripheral: peripheral, descriptor: self.descriptor)
             }
             .flatMap({ device -> Observable<Device> in
                 return device.map { mapDevice in
